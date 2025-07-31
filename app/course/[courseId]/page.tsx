@@ -9,56 +9,9 @@ import { ArrowLeft, Play, FileText, Award, Clock, CheckCircle } from "lucide-rea
 import Link from "next/link"
 import Image from "next/image"
 
-function getLogoUrl(logo?: string) {
-  if (!logo) return "/placeholder.svg"
-  if (logo.startsWith("http")) return logo
-  return `https://strapi-speicher.s3.eu-central-1.amazonaws.com${logo}`
-}
-
-const courseData = {
-  "smart-nexus": {
-    title: "Smart Nexus Schulung",
-    description: "Umfassende Schulung für die Smart Nexus Plattform und Funktionen",
-    logo: "https://strapi-speicher.s3.eu-central-1.amazonaws.com/Smart_Nexus_Logo_7e2c4832ff.png",
-    gradient: "from-blue-500 to-blue-600",
-    modules: [
-      { id: 1, title: "Einführung in Smart Nexus", description: "Lernen Sie die Grundlagen", duration: "15", type: "video", completed: true },
-      { id: 2, title: "Plattform-Navigation", description: "Entdecken Sie wichtige Bereiche", duration: "20", type: "video", completed: true },
-      { id: 3, title: "Erweiterte Funktionen", description: "Fortgeschrittene Features", duration: "25", type: "video", completed: true },
-      { id: 4, title: "Praktische Anwendung", description: "Anwendung in realen Szenarien", duration: "30", type: "video", completed: false },
-      { id: 5, title: "Best Practices", description: "Bewährte Methoden", duration: "30", type: "video", completed: false }
-    ]
-  },
-  "smart-lens": {
-    title: "Smart Lens Schulung",
-    description: "Lernen Sie Smart Lens effektiv zu nutzen",
-    logo: "https://strapi-speicher.s3.eu-central-1.amazonaws.com/Smart_Lens_Logo_092c7a8838.png",
-    gradient: "from-slate-600 to-slate-700",
-    modules: [
-      { id: 1, title: "Smart Lens Grundlagen", description: "Kernkonzepte und Einsatz", duration: "18", type: "video", completed: false },
-      { id: 2, title: "Konfiguration", description: "Optimale Einrichtung", duration: "22", type: "video", completed: false },
-      { id: 3, title: "Erweiterte Analytik", description: "Analyse-Tools nutzen", duration: "28", type: "video", completed: false },
-      { id: 4, title: "Praktische Übungen", description: "hands-on Beispiele", duration: "25", type: "video", completed: false },
-      { id: 5, title: "Implementierungsleitfaden", description: "Schritt-für-Schritt Umsetzung", duration: "35", type: "video", completed: false }
-    ]
-  },
-  hacktracks: {
-    title: "Hacktracks Schulung",
-    description: "Meistern Sie Hacktracks Tools und Methoden",
-    logo: "https://strapi-speicher.s3.eu-central-1.amazonaws.com/Hacks_Tracks_Logo_881c55ef70.png",
-    gradient: "from-slate-700 to-slate-800",
-    modules: [
-      { id: 1, title: "Hacktracks Überblick", description: "Überblick Hacktracks Suite", duration: "20", type: "video", completed: false },
-      { id: 2, title: "Sicherheitsgrundlagen", description: "Sicherheitsprinzipien", duration: "30", type: "video", completed: false },
-      { id: 3, title: "Praktische Anwendungen", description: "Sicherheitstools nutzen", duration: "40", type: "video", completed: false },
-      { id: 4, title: "Sicherheitsanalyse", description: "Sicherheitsbewertungen", duration: "35", type: "video", completed: false },
-      { id: 5, title: "Erweiterte Techniken", description: "Spezialisierte Werkzeuge", duration: "45", type: "video", completed: false }
-    ]
-  }
-}
-
 export default function CoursePage() {
   const [userEmail, setUserEmail] = useState("")
+  const [course, setCourse] = useState(null)
   const router = useRouter()
   const params = useParams()
   const courseId = params.courseId as string
@@ -72,12 +25,28 @@ export default function CoursePage() {
     }
   }, [router])
 
-  const course = courseData[courseId as keyof typeof courseData]
+  useEffect(() => {
+    const fetchCourse = async () => {
+      const res = await fetch(
+        `https://strapi-elearning-8rff.onrender.com/api/courses/${courseId}?populate=logo,modules`
+      )
+      const json = await res.json()
+      setCourse(json.data?.attributes || null)
+    }
+    fetchCourse()
+  }, [courseId])
 
-  if (!course) return <div>Course not found</div>
+  if (!course) return <div>Kurs wird geladen ...</div>
 
-  const completedModules = course.modules.filter((m) => m.completed).length
+  const completedModules = course.modules.filter((m: any) => m.completed).length
   const progressPercentage = (completedModules / course.modules.length) * 100
+
+  const getLogoUrl = () => {
+    const logo = course.logo?.data?.attributes
+    return (
+      logo?.formats?.thumbnail?.url || logo?.url || "/placeholder.svg?height=64&width=64&text=Logo"
+    )
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100">
@@ -85,12 +54,22 @@ export default function CoursePage() {
         <div className="max-w-7xl mx-auto px-6 py-4 flex items-center gap-4">
           <Link href="/dashboard">
             <Button variant="ghost" size="sm" className="flex items-center gap-2 hover:bg-slate-100">
-              <ArrowLeft className="h-4 w-4" /> Zurück zum Dashboard
+              <ArrowLeft className="h-4 w-4" />
+              Zurück zum Dashboard
             </Button>
           </Link>
           <div className="w-px h-6 bg-slate-300 mx-2"></div>
           <div className="flex items-center gap-2">
-            <Image src="/images/sales-academy-logo.png" alt="Sales Academy" width={150} height={45} className="h-6 w-auto" />
+            <Image
+              src="/images/sales-academy-logo.png"
+              alt="Sales Academy"
+              width={150}
+              height={45}
+              className="h-6 w-auto"
+              onError={(e) => {
+                e.currentTarget.style.display = "none"
+              }}
+            />
             <span className="text-sm font-bold text-slate-800">Sales Academy</span>
           </div>
         </div>
@@ -102,13 +81,13 @@ export default function CoursePage() {
             <div className="flex items-center gap-4 mb-4">
               <div className="w-16 h-16 flex items-center justify-center">
                 <Image
-                  src={getLogoUrl(course.logo)}
+                  src={getLogoUrl()}
                   alt={course.title}
                   width={64}
                   height={64}
-                  className="w-full h-full object-contain drop-shadow-lg"
+                  className="w-full h-full object-contain drop-shadow-lg rounded-lg"
                   onError={(e) => {
-                    e.currentTarget.src = "/placeholder.svg"
+                    e.currentTarget.src = "/placeholder.svg?height=64&width=64&text=Logo"
                   }}
                 />
               </div>
@@ -118,13 +97,14 @@ export default function CoursePage() {
               </div>
             </div>
           </CardHeader>
+
           <CardContent>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
               <div className="flex items-center gap-3 p-4 bg-slate-50 rounded-xl">
                 <Clock className="h-5 w-5 text-slate-600" />
                 <div>
                   <p className="font-semibold text-slate-800">
-                    {course.modules.reduce((total, m) => total + Number.parseInt(m.duration), 0)} Min
+                    {course.modules.reduce((total: number, m: any) => total + parseInt(m.duration), 0)} Min
                   </p>
                   <p className="text-sm text-slate-600 font-light">Gesamtdauer</p>
                 </div>
@@ -144,6 +124,7 @@ export default function CoursePage() {
                 </div>
               </div>
             </div>
+
             <div className="p-6 bg-gradient-to-r from-slate-50 to-slate-100 rounded-2xl">
               <div className="flex justify-between items-center mb-3">
                 <span className="font-semibold text-slate-800">Ihr Fortschritt</span>
@@ -151,7 +132,7 @@ export default function CoursePage() {
               </div>
               <div className="w-full bg-slate-200 rounded-full h-3 overflow-hidden mb-2">
                 <div
-                  className={`bg-gradient-to-r ${course.gradient} h-3 rounded-full transition-all duration-500 shadow-sm`}
+                  className={`bg-gradient-to-r from-blue-500 to-blue-600 h-3 rounded-full transition-all duration-500 shadow-sm`}
                   style={{ width: `${progressPercentage}%` }}
                 ></div>
               </div>
@@ -161,8 +142,6 @@ export default function CoursePage() {
             </div>
           </CardContent>
         </Card>
-
-        {/* Weitere UI folgt wie gehabt */}
       </main>
     </div>
   )
