@@ -32,16 +32,36 @@ export default function LoginPage() {
         body: JSON.stringify({ email }),
       })
 
-      const data = await response.json()
+      console.log("📡 Login response status:", response.status)
+      console.log("📡 Login response headers:", response.headers.get("content-type"))
 
-      if (response.ok) {
+      // Check if response is JSON
+      const contentType = response.headers.get("content-type")
+      if (!contentType || !contentType.includes("application/json")) {
+        console.error("❌ Response is not JSON:", contentType)
+        const textResponse = await response.text()
+        console.error("❌ Response text:", textResponse.substring(0, 200))
+        throw new Error("Server returned invalid response format")
+      }
+
+      const data = await response.json()
+      console.log("📊 Login response data:", data)
+
+      if (response.ok && data.success) {
         localStorage.setItem("userEmail", email)
         router.push("/dashboard")
       } else {
         setError(data.error || "Login failed")
       }
     } catch (error) {
-      setError("Ein Fehler ist aufgetreten. Bitte versuchen Sie es erneut.")
+      console.error("Login error:", error)
+      if (error.message.includes("JSON")) {
+        setError("Server error: Invalid response format. Please try again or contact support.")
+      } else if (error.message.includes("fetch")) {
+        setError("Network error: Please check your internet connection and try again.")
+      } else {
+        setError("Login failed: " + (error.message || "Unknown error occurred"))
+      }
     } finally {
       setIsLoading(false)
     }
@@ -90,7 +110,14 @@ export default function LoginPage() {
 
               {error && (
                 <Alert variant="destructive" className="rounded-xl">
-                  <AlertDescription>{error}</AlertDescription>
+                  <AlertDescription>
+                    {error}
+                    <details className="mt-2 text-xs opacity-75">
+                      <summary>Debug Info</summary>
+                      <p>Strapi URL: {process.env.NEXT_PUBLIC_STRAPI_URL || "http://localhost:1337"}</p>
+                      <p>Fallback Emails: admin@example.com, demo@elearning.com, test@test.com</p>
+                    </details>
+                  </AlertDescription>
                 </Alert>
               )}
 
