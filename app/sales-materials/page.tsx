@@ -167,7 +167,7 @@ export default function SalesMaterialsPage() {
           <div className="w-px h-6 bg-slate-300 mx-2"></div>
           <div className="flex items-center gap-2">
             <Image
-              src="/placeholder.svg?height=24&width=24&text=SA"
+              src="/images/sales-academy-logo.png"
               alt="Sales Academy"
               width={150}
               height={45}

@@ -361,7 +361,7 @@ export default function CoursePage() {
           <div className="w-px h-6 bg-slate-300 mx-2"></div>
           <div className="flex items-center gap-2">
             <Image
-              src="/placeholder.svg?height=24&width=24&text=SA"
+              src="/images/sales-academy-logo.png"
               alt="Sales Academy"
               width={150}
               height={45}
@@ -384,7 +384,7 @@ export default function CoursePage() {
               <div className="w-16 h-16 flex items-center justify-center">
                 <Image
                   src={
-                    course.logo || 
+                    course.logo ||
                     `/placeholder.svg?height=64&width=64&text=${encodeURIComponent(course.title || "Kurs")}`
                   }
                   alt={course.title || "Kurs"}
@@ -858,7 +858,7 @@ export default function CoursePage() {
                                                 </div>
                                                 <Button
                                                   onClick={() => resetQuiz(module.id)}
-                                                  className="bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 text-white px-8 py-3 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105"
+                                                  className="bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 text-white px-8 py-3 rounded-xl shadow-lg hover:shadow-xl transition-all duration-200"
                                                 >
                                                   <span className="text-lg mr-2">🔄</span>
                                                   Quiz wiederholen

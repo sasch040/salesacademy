@@ -73,7 +73,7 @@ export default function LoginPage() {
         <div className="text-center mb-8">
           <Link href="/" className="inline-flex items-center gap-3 hover:opacity-80 transition-opacity">
             <Image
-              src="/placeholder.svg?height=60&width=60&text=SA"
+              src="/images/sales-academy-logo.png"
               alt="Sales Academy"
               width={60}
               height={60}

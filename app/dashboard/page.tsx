@@ -132,7 +132,7 @@ export default function Dashboard() {
         <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
           <div className="flex items-center gap-4">
             <Image
-              src="/placeholder.svg?height=32&width=32&text=SA"
+              src="/images/sales-academy-logo.png"
               alt="Sales Academy"
               width={150}
               height={45}
