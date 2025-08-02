@@ -384,21 +384,18 @@ export default function CoursePage() {
               <div className="w-16 h-16 flex items-center justify-center">
                 <Image
                   src={
-                    typeof course?.logo === "string"
-                      ? course.logo.startsWith("https://strapi-speicher.s3.eu-central-1.amazonaws.com")
-                        ? course.logo
-                        : `/placeholder.svg?height=64&width=64&text=${encodeURIComponent(course?.title || "Kurs")}`
-                      : course?.logo?.formats?.thumbnail?.url ||
-                        course?.logo?.url ||
-                        `/placeholder.svg?height=64&width=64&text=${encodeURIComponent(course?.title || "Kurs")}`
+                    course.logo?.formats?.thumbnail?.url ||
+                    course.logo?.url ||
+                    `/placeholder.svg?height=64&width=64&text=${encodeURIComponent(course.title || "Kurs")}`
                   }
-                  alt={course?.title || "Kurs"}
+                  alt={course.title || "Kurs"}
                   width={64}
                   height={64}
                   className="w-full h-full object-contain drop-shadow-lg rounded-lg"
                   onError={(e) => {
-                    console.warn("❌ Course logo konnte nicht geladen werden:", e.currentTarget.src)
-                    e.currentTarget.src = `/placeholder.svg?height=64&width=64&text=${encodeURIComponent(course?.title || "Kurs")}`
+                    const fallback = `/placeholder.svg?height=64&width=64&text=${encodeURIComponent(course.title || "Kurs")}`
+                    console.warn("❌ Logo konnte nicht geladen werden:", e.currentTarget.src)
+                    e.currentTarget.src = fallback
                   }}
                 />
               </div>
