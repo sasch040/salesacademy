@@ -1,8 +1,11 @@
-// Progress Hook
-// TODO: Mit ChatGPT implementieren
+// hooks/useProgress.ts
+'use client';
 
-// Features die hier rein sollen:
-// - Progress state management
-// - Save/load progress functions
-// - Module completion tracking
-// - Quiz score management
+import { useContext } from 'react';
+import { ProgressContext } from '@/contexts/ProgressContext';
+
+export const useProgress = () => {
+  const context = useContext(ProgressContext);
+  if (!context) throw new Error('useProgress must be used within a ProgressProvider');
+  return context;
+};
