@@ -337,11 +337,10 @@ export async function GET(request: NextRequest, { params }: { params: { courseId
     console.log("🖼️ === LOGO EXTRACTION ===")
 
     // Extrahiere Logo aus Strapi Course Response
-    const logoData = courseAttributes.logo
-    console.log("Logo Data Structure:", JSON.stringify(logoData, null, 2))
+    const logoAttributes = courseAttributes.logo
+    console.log("Logo Data Structure:", JSON.stringify(logoAttributes, null, 2))
 
-    if (logoData?.data) {
-      const logoAttributes = logoData.data.attributes || logoData.data
+    if (logoAttributes) {
       console.log("Logo Attributes:", JSON.stringify(logoAttributes, null, 2))
 
       // Priorisiere thumbnail URL aus formats
