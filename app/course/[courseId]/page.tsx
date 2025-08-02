@@ -382,15 +382,7 @@ export default function CoursePage() {
           <CardHeader className="pb-6">
             <div className="flex items-center gap-4 mb-4">
               <div className="w-16 h-16 flex items-center justify-center">
-                {/* Debug Info */}
-                <div className="absolute -top-20 left-0 bg-black text-white text-xs p-2 rounded z-50">
-                  <div>Logo URL: {course.logo}</div>
-                  <div>Thumbnail: {course.logo?.formats?.thumbnail?.url}</div>
-                  <div>Direct: {course.logo?.url}</div>
-                </div>
-
-                {/* Temporär normales img statt Next.js Image */}
-                <img
+                <Image
                   src={
                     course.logo?.formats?.thumbnail?.url ||
                     course.logo?.url ||
@@ -404,9 +396,6 @@ export default function CoursePage() {
                     const fallback = `/placeholder.svg?height=64&width=64&text=${encodeURIComponent(course.title || "Kurs")}`
                     console.warn("❌ Logo konnte nicht geladen werden:", e.currentTarget.src)
                     e.currentTarget.src = fallback
-                  }}
-                  onLoad={() => {
-                    console.log("✅ Logo erfolgreich geladen:", course.logo)
                   }}
                 />
               </div>
