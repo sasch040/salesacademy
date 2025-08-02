@@ -1,4 +1,3 @@
-// contexts/AuthContext.tsx
 'use client';
 
 import React, { createContext, useState, useContext, useEffect } from 'react';
@@ -26,7 +25,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         Authorization: `Bearer ${token}`,
       },
     })
-      .then((res) => res.ok ? res.json() : null)
+      .then((res) => (res.ok ? res.json() : null))
       .then((data) => {
         if (data) setUser(data);
         else removeToken();
@@ -41,10 +40,21 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       body: JSON.stringify({ identifier, password }),
     });
 
-    if (!res.ok) throw new Error('Login fehlgeschlagen');
-    const data: AuthResponse = await res.json();
-    setToken(data.jwt);
-    setUser(data.user);
+    const text = await res.text();
+
+    if (!res.ok) {
+      console.error('❌ Login failed with:', text);
+      throw new Error('Login fehlgeschlagen');
+    }
+
+    try {
+      const data: AuthResponse = JSON.parse(text);
+      setToken(data.jwt);
+      setUser(data.user);
+    } catch (err) {
+      console.error('❌ JSON parsing failed:', err, text);
+      throw new Error('Unerwartete Antwort vom Server');
+    }
   };
 
   const register = async (username: string, email: string, password: string) => {
