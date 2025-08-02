@@ -1,8 +1,23 @@
-// Protected Route Wrapper Component
-// TODO: Mit ChatGPT implementieren
+'use client';
 
-// Features die hier rein sollen:
-// - Check if user is authenticated
-// - Redirect to login if not authenticated
-// - Show loading spinner while checking
-// - Render children if authenticated
+import { useAuth } from '@/hooks/useAuth';
+import { useRouter } from 'next/navigation';
+import { useEffect, useState } from 'react';
+
+export default function ProtectedRoute({ children }: { children: React.ReactNode }) {
+  const { user } = useAuth();
+  const router = useRouter();
+  const [checking, setChecking] = useState(true);
+
+  useEffect(() => {
+    if (!user) {
+      router.push('/auth/login');
+    } else {
+      setChecking(false);
+    }
+  }, [user, router]);
+
+  if (checking) return null; // oder Spinner anzeigen
+
+  return <>{children}</>;
+}
