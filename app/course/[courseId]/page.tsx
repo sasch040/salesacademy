@@ -385,7 +385,9 @@ export default function CoursePage() {
                 <Image
                   src={
                     typeof course?.logo === "string"
-                      ? course.logo
+                      ? course.logo.startsWith("https://strapi-speicher.s3.eu-central-1.amazonaws.com")
+                        ? course.logo
+                        : `/placeholder.svg?height=64&width=64&text=${encodeURIComponent(course?.title || "Kurs")}`
                       : course?.logo?.formats?.thumbnail?.url ||
                         course?.logo?.url ||
                         `/placeholder.svg?height=64&width=64&text=${encodeURIComponent(course?.title || "Kurs")}`
@@ -394,10 +396,9 @@ export default function CoursePage() {
                   width={64}
                   height={64}
                   className="w-full h-full object-contain drop-shadow-lg rounded-lg"
-                  onError={(e) => { 
+                  onError={(e) => {
                     console.warn("❌ Course logo konnte nicht geladen werden:", e.currentTarget.src)
-                    const fallback = `/placeholder.svg?height=64&width=64&text=${encodeURIComponent(course?.title || "Kurs")}`
-                    e.currentTarget.src = fallback
+                    e.currentTarget.src = `/placeholder.svg?height=64&width=64&text=${encodeURIComponent(course?.title || "Kurs")}`
                   }}
                 />
               </div>
