@@ -1,4 +1,5 @@
 "use client"
+import ProgressTracker from "@/components/progress/ProgressTracker"
 import ProtectedRoute from "@/components/auth/ProtectedRoute"
 import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
