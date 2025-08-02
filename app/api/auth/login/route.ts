@@ -1,13 +1,15 @@
 import { type NextRequest, NextResponse } from "next/server"
+import jwt from "jsonwebtoken"
 
 const STRAPI_URL = "https://strapi-elearning-8rff.onrender.com"
+const JWT_SECRET = process.env.JWT_SECRET || "your_jwt_secret"
 
 export async function POST(request: NextRequest) {
   try {
-    const { email } = await request.json()
+    const { email, password } = await request.json()
 
-    if (!email) {
-      return NextResponse.json({ error: "Email is required" }, { status: 400 })
+    if (!email || !password) {
+      return NextResponse.json({ error: "Email and password are required" }, { status: 400 })
     }
 
     console.log("🔍 Attempting login for:", email)
@@ -16,18 +18,21 @@ export async function POST(request: NextRequest) {
 
     // Prüfe gegen Strapi Authorized Users mit Timeout
     try {
-      const strapiUrl = `${STRAPI_URL}/api/authorized-users?filters[email][$eq]=${email}&filters[isActive][$eq]=true`
+      const strapiUrl = `${STRAPI_URL}/api/auth/local`
       console.log("📡 Fetching from:", strapiUrl)
 
       const controller = new AbortController()
       const timeoutId = setTimeout(() => controller.abort(), 10000) // 10 Sekunden für Render
 
       const response = await fetch(strapiUrl, {
-        method: "GET",
+        method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${process.env.STRAPI_API_TOKEN}`,
         },
+        body: JSON.stringify({
+          identifier: email,
+          password,
+        }),
         signal: controller.signal,
       })
 
@@ -42,19 +47,15 @@ export async function POST(request: NextRequest) {
       console.log("✅ Strapi response received")
 
       // 🔧 Verbesserte Datenstruktur-Prüfung
-      if (data && data.data && Array.isArray(data.data) && data.data.length > 0) {
-        const user = data.data[0]
+      if (data && data.user && data.jwt) {
+        const user = data.user
         console.log("👤 User found in Strapi")
 
         // Prüfe verschiedene mögliche Datenstrukturen
         let userEmail = null
         let userRole = "student"
 
-        if (user.attributes && user.attributes.email) {
-          // Strapi v4 Format
-          userEmail = user.attributes.email
-          userRole = user.attributes.role || "student"
-        } else if (user.email) {
+        if (user.email) {
           // Direktes Format
           userEmail = user.email
           userRole = user.role || "student"
@@ -95,6 +96,10 @@ export async function POST(request: NextRequest) {
           console.warn("⚠️ Could not update lastLogin (non-critical):", updateError.message)
         }
 
+        // JWT Token Handling
+        const token = jwt.sign({ email: userEmail, role: userRole }, JWT_SECRET, { expiresIn: "1h" })
+        console.log("JWT Token generated:", token)
+
         return NextResponse.json({
           success: true,
           message: "Login successful via Strapi",
@@ -102,6 +107,7 @@ export async function POST(request: NextRequest) {
             email: userEmail,
             role: userRole,
           },
+          token,
         })
       } else {
         console.log("❌ User not found or inactive in Strapi")
@@ -139,11 +145,14 @@ export async function POST(request: NextRequest) {
 
       if (isAuthorized) {
         console.log("✅ User authorized via fallback list")
+        const token = jwt.sign({ email, role: "student" }, JWT_SECRET, { expiresIn: "1h" })
+        console.log("JWT Token generated:", token)
         return NextResponse.json({
           success: true,
           message: "Login successful (fallback mode - Strapi unavailable)",
           user: { email, role: "student" },
           warning: "Strapi connection failed, using fallback authentication",
+          token,
         })
       } else {
         return NextResponse.json(
