@@ -1,3 +1,5 @@
+import { AuthProvider } from '@/contexts/AuthContext'
+import { ProgressProvider } from '@/contexts/ProgressContext'
 import type { Metadata } from 'next'
 import { GeistSans } from 'geist/font/sans'
 import { GeistMono } from 'geist/font/mono'
@@ -25,7 +27,13 @@ html {
 }
         `}</style>
       </head>
-      <body>{children}</body>
+      <body>
+        <AuthProvider>
+          <ProgressProvider>
+            {children}
+          </ProgressProvider>
+        </AuthProvider>
+      </body>
     </html>
   )
 }
