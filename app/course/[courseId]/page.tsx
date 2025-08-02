@@ -361,13 +361,13 @@ export default function CoursePage() {
           <div className="w-px h-6 bg-slate-300 mx-2"></div>
           <div className="flex items-center gap-2">
             <Image
-              src="/images/sales-academy-logo.png"
+              src="/placeholder.svg?height=24&width=24&text=SA"
               alt="Sales Academy"
               width={150}
               height={45}
               className="h-6 w-auto drop-shadow-lg"
               onError={(e) => {
-                e.currentTarget.style.display = "none"
+                e.currentTarget.src = "/placeholder.svg?height=24&width=24&text=SA"
               }}
             />
             <span className="text-sm font-bold text-slate-800">Sales Academy</span>

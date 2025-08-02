@@ -132,14 +132,14 @@ export default function Dashboard() {
         <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
           <div className="flex items-center gap-4">
             <Image
-              src="/images/sales-academy-logo.png"
+              src="/placeholder.svg?height=32&width=32&text=SA"
               alt="Sales Academy"
               width={150}
               height={45}
               className="h-8 w-auto drop-shadow-lg"
               onError={(e) => {
                 console.warn("⚠️ Sales Academy logo failed to load")
-                e.currentTarget.style.display = "none"
+                e.currentTarget.src = "/placeholder.svg?height=32&width=32&text=SA"
               }}
             />
             <div>

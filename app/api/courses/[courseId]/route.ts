@@ -370,20 +370,20 @@ export async function GET(request: NextRequest, { params }: { params: { courseId
       }
     }
 
-    // Fallback auf lokale Bilder basierend auf Kurs-Titel
-    if (!courseLogo) {
-      const courseTitle = courseAttributes.title?.toLowerCase()
-      if (courseTitle?.includes("smart nexus")) {
-        courseLogo = "/images/smart-nexus-clean.png"
-        console.log(`📷 Using local Smart Nexus logo: ${courseLogo}`)
-      } else if (courseTitle?.includes("smart lens")) {
-        courseLogo = "/images/smart-lens-clean.png"
-        console.log(`📷 Using local Smart Lens logo: ${courseLogo}`)
-      } else if (courseTitle?.includes("hacktracks")) {
-        courseLogo = "/images/hacktracks-clean.png"
-        console.log(`📷 Using local HackTracks logo: ${courseLogo}`)
-      }
-    }
+    // Fallback auf lokale Bilder basierend auf Kurs-Titel - ENTFERNT
+    // if (!courseLogo) {
+    //   const courseTitle = courseAttributes.title?.toLowerCase()
+    //   if (courseTitle?.includes("smart nexus")) {
+    //     courseLogo = "/images/smart-nexus-clean.png"
+    //     console.log(`📷 Using local Smart Nexus logo: ${courseLogo}`)
+    //   } else if (courseTitle?.includes("smart lens")) {
+    //     courseLogo = "/images/smart-lens-clean.png"
+    //     console.log(`📷 Using local Smart Lens logo: ${courseLogo}`)
+    //   } else if (courseTitle?.includes("hacktracks")) {
+    //     courseLogo = "/images/hacktracks-clean.png"
+    //     console.log(`📷 Using local HackTracks logo: ${courseLogo}`)
+    //   }
+    // }
 
     // Letzter Fallback nur wenn wirklich nichts gefunden wurde
     if (!courseLogo) {
