@@ -73,7 +73,7 @@ export default function LoginPage() {
         <div className="text-center mb-8">
           <Link href="/" className="inline-flex items-center gap-3 hover:opacity-80 transition-opacity">
             <Image
-              src="/images/sales-academy-new-logo.png"
+              src="/images/sales-academy-logo.png"
               alt="Sales Academy"
               width={60}
               height={60}
@@ -110,14 +110,7 @@ export default function LoginPage() {
 
               {error && (
                 <Alert variant="destructive" className="rounded-xl">
-                  <AlertDescription>
-                    {error}
-                    <details className="mt-2 text-xs opacity-75">
-                      <summary>Debug Info</summary>
-                      <p>Strapi URL: {process.env.NEXT_PUBLIC_STRAPI_URL || "http://localhost:1337"}</p>
-                      <p>Fallback Emails: admin@example.com, demo@elearning.com, test@test.com</p>
-                    </details>
-                  </AlertDescription>
+                  <AlertDescription>{error}</AlertDescription>
                 </Alert>
               )}
 

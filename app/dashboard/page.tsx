@@ -10,12 +10,10 @@ import {
   Clock,
   Award,
   TrendingUp,
-  Users,
   Target,
   ChevronRight,
   Play,
   CheckCircle,
-  Star,
   BarChart3,
   LogOut,
 } from "lucide-react"
@@ -141,7 +139,7 @@ export default function Dashboard() {
               className="h-8 w-auto drop-shadow-lg"
               onError={(e) => {
                 console.warn("⚠️ Sales Academy logo failed to load")
-                e.currentTarget.style.display = "none"
+                e.currentTarget.src = "/placeholder.svg?height=32&width=32&text=SA"
               }}
             />
             <div>
@@ -291,23 +289,12 @@ export default function Dashboard() {
 
                     <p className="text-slate-600 font-light leading-relaxed mb-6 line-clamp-3">{product.description}</p>
 
-                    <div className="flex items-center justify-between mb-6">
+                    <div className="mb-6">
                       <div className="flex items-center gap-4 text-sm text-slate-600">
                         <div className="flex items-center gap-1">
                           <Clock className="h-4 w-4" />
                           <span>~45 Min</span>
                         </div>
-                        <div className="flex items-center gap-1">
-                          <Users className="h-4 w-4" />
-                          <span>Alle Level</span>
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-1">
-                        <Star className="h-4 w-4 text-yellow-500 fill-current" />
-                        <Star className="h-4 w-4 text-yellow-500 fill-current" />
-                        <Star className="h-4 w-4 text-yellow-500 fill-current" />
-                        <Star className="h-4 w-4 text-yellow-500 fill-current" />
-                        <Star className="h-4 w-4 text-yellow-500 fill-current" />
                       </div>
                     </div>
 
