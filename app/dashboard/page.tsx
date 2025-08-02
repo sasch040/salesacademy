@@ -1,4 +1,5 @@
 "use client"
+import { useProgress } from "@/hooks/useProgress"
 import ProgressTracker from "@/components/progress/ProgressTracker"
 import ProtectedRoute from "@/components/auth/ProtectedRoute"
 import { useEffect, useState } from "react"
@@ -38,6 +39,11 @@ export default function Dashboard() {
   const [error, setError] = useState<string | null>(null)
   const [userEmail, setUserEmail] = useState("")
   const router = useRouter()
+  const { progress } = useProgress()
+  
+  const completedCount = progress.filter(p => p.completed).length
+  const totalCount = progress.length
+  const percent = totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : 0
 
   // User authentication
   useEffect(() => {
@@ -229,7 +235,7 @@ export default function Dashboard() {
                   <TrendingUp className="h-6 w-6 text-white" />
                 </div>
                 <div>
-                  <p className="text-2xl font-bold text-slate-800">0%</p>
+                  <p className="text-2xl font-bold text-slate-800">{percent}%</p>
                   <p className="text-sm text-slate-600 font-light">Gesamtfortschritt</p>
                 </div>
               </div>
