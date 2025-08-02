@@ -1,9 +1,9 @@
-// contexts/ProgressContext.tsx
 'use client';
-import { getToken } from '@/lib/auth';
+
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { ModuleProgress } from '@/lib/types';
 import { getProgressByUser, saveProgress, updateProgress } from '@/lib/progress';
+import { getToken } from '@/lib/auth'; // ✅ Gültig – gehört nach oben
 
 interface ProgressContextType {
   progress: ModuleProgress[];
@@ -18,16 +18,14 @@ export const ProgressProvider = ({ children }: { children: React.ReactNode }) =>
   const [progress, setProgress] = useState<ModuleProgress[]>([]);
 
   const refreshProgress = async () => {
+    const token = getToken();
+    if (!token) {
+      console.warn('⛔ Kein Token vorhanden – Fortschritt wird nicht geladen');
+      return;
+    }
+
     try {
-      const refreshProgress = async () => {
-        const token = getToken();
-        if (!token) {
-          console.warn('⛔ Kein Token vorhanden – Fortschritt wird nicht geladen');
-          return;
-        }
-    
-        try {
-          const data = await getProgressByUser();
+      const data = await getProgressByUser();
       setProgress(data);
     } catch (err) {
       console.error('Progress konnte nicht geladen werden', err);
