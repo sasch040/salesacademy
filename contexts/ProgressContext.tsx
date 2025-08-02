@@ -1,6 +1,6 @@
 // contexts/ProgressContext.tsx
 'use client';
-
+import { getToken } from '@/lib/auth';
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { ModuleProgress } from '@/lib/types';
 import { getProgressByUser, saveProgress, updateProgress } from '@/lib/progress';
@@ -19,7 +19,6 @@ export const ProgressProvider = ({ children }: { children: React.ReactNode }) =>
 
   const refreshProgress = async () => {
     try {
-      import { getToken } from '@/lib/auth';
       const refreshProgress = async () => {
         const token = getToken();
         if (!token) {
