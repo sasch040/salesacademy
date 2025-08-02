@@ -22,7 +22,7 @@ export async function POST(request: NextRequest) {
       console.log("📡 Fetching from:", strapiUrl)
 
       const controller = new AbortController()
-      const timeoutId = setTimeout(() => controller.abort(), 10000) // 10 Sekunden für Render
+      const timeoutId = setTimeout(() => controller.abort(), 15000) // 15 Sekunden für Render
 
       const response = await fetch(strapiUrl, {
         method: "POST",
@@ -38,9 +38,27 @@ export async function POST(request: NextRequest) {
 
       clearTimeout(timeoutId)
 
+      console.log("📊 Strapi response status:", response.status)
+      console.log("📊 Strapi response headers:", Object.fromEntries(response.headers.entries()))
+
+      // Check if response is JSON
+      const contentType = response.headers.get("content-type")
+      if (!contentType || !contentType.includes("application/json")) {
+        console.error("❌ Strapi returned non-JSON response:", contentType)
+        const textResponse = await response.text()
+        console.error("❌ Response body:", textResponse.substring(0, 500))
+        throw new Error(`Strapi returned non-JSON response: ${response.status}`)
+      }
+
       if (!response.ok) {
-        console.error("❌ Strapi API Error:", response.status, response.statusText)
-        throw new Error(`Strapi returned ${response.status}: ${response.statusText}`)
+        const errorData = await response.json().catch(() => ({ message: "Unknown error" }))
+        console.error("❌ Strapi API Error:", response.status, errorData)
+
+        if (response.status === 400) {
+          return NextResponse.json({ error: "Invalid email or password" }, { status: 400 })
+        }
+
+        throw new Error(`Strapi authentication failed: ${response.status}`)
       }
 
       const data = await response.json()
@@ -58,7 +76,7 @@ export async function POST(request: NextRequest) {
         if (user.email) {
           // Direktes Format
           userEmail = user.email
-          userRole = user.role || "student"
+          userRole = user.role?.name || user.role || "student"
         } else {
           console.error("❌ Unexpected user data structure:", user)
           throw new Error("User data structure not recognized")
@@ -71,16 +89,14 @@ export async function POST(request: NextRequest) {
           const updateController = new AbortController()
           const updateTimeoutId = setTimeout(() => updateController.abort(), 5000)
 
-          const updateResponse = await fetch(`${STRAPI_URL}/api/authorized-users/${user.id}`, {
+          const updateResponse = await fetch(`${STRAPI_URL}/api/users/${user.id}`, {
             method: "PUT",
             headers: {
               "Content-Type": "application/json",
-              Authorization: `Bearer ${process.env.STRAPI_API_TOKEN}`,
+              Authorization: `Bearer ${data.jwt}`,
             },
             body: JSON.stringify({
-              data: {
-                lastLogin: new Date().toISOString(),
-              },
+              lastLogin: new Date().toISOString(),
             }),
             signal: updateController.signal,
           })
@@ -97,31 +113,32 @@ export async function POST(request: NextRequest) {
         }
 
         // JWT Token Handling
-        const token = jwt.sign({ email: userEmail, role: userRole }, JWT_SECRET, { expiresIn: "1h" })
-        console.log("JWT Token generated:", token)
+        const token = jwt.sign({ email: userEmail, role: userRole, strapiId: user.id }, JWT_SECRET, {
+          expiresIn: "24h",
+        })
+        console.log("✅ JWT Token generated successfully")
 
         return NextResponse.json({
           success: true,
           message: "Login successful via Strapi",
           user: {
+            id: user.id,
             email: userEmail,
             role: userRole,
+            username: user.username,
           },
           token,
         })
       } else {
-        console.log("❌ User not found or inactive in Strapi")
-        return NextResponse.json(
-          { error: "Access denied. Your email is not authorized for this platform." },
-          { status: 403 },
-        )
+        console.log("❌ Invalid credentials or user not found in Strapi")
+        return NextResponse.json({ error: "Invalid email or password" }, { status: 401 })
       }
     } catch (strapiError) {
       console.error("🚨 Strapi connection failed:", strapiError.message)
 
       // Detaillierte Fehleranalyse
       if (strapiError.name === "AbortError") {
-        console.error("⏰ Strapi request timeout (10s)")
+        console.error("⏰ Strapi request timeout (15s)")
       } else if (strapiError.message.includes("ECONNREFUSED")) {
         console.error("🔌 Connection refused - is Strapi running on", STRAPI_URL, "?")
       } else if (strapiError.message.includes("fetch")) {
@@ -143,10 +160,11 @@ export async function POST(request: NextRequest) {
 
       const isAuthorized = FALLBACK_EMAILS.includes(email.toLowerCase())
 
-      if (isAuthorized) {
+      if (isAuthorized && password.length >= 4) {
+        // Einfache Passwort-Validierung für Fallback
         console.log("✅ User authorized via fallback list")
-        const token = jwt.sign({ email, role: "student" }, JWT_SECRET, { expiresIn: "1h" })
-        console.log("JWT Token generated:", token)
+        const token = jwt.sign({ email, role: "student" }, JWT_SECRET, { expiresIn: "24h" })
+        console.log("✅ JWT Token generated (fallback)")
         return NextResponse.json({
           success: true,
           message: "Login successful (fallback mode - Strapi unavailable)",
@@ -157,12 +175,11 @@ export async function POST(request: NextRequest) {
       } else {
         return NextResponse.json(
           {
-            error: "Access denied. Strapi unavailable and email not in fallback list.",
-            details: `Please check if Strapi is running on ${STRAPI_URL} or contact administrator.`,
+            error: "Login failed. Please check your credentials.",
+            details: `Strapi unavailable and credentials not valid for fallback mode.`,
             strapiError: strapiError.message,
-            fallbackEmails: FALLBACK_EMAILS,
           },
-          { status: 503 },
+          { status: 401 },
         )
       }
     }

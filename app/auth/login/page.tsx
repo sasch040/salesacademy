@@ -17,14 +17,18 @@ export default function LoginPage() {
   const [password, setPassword] = useState("")
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState("")
+  const [warning, setWarning] = useState("")
   const router = useRouter()
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsLoading(true)
     setError("")
+    setWarning("")
 
     try {
+      console.log("🔄 Attempting login...")
+
       const response = await fetch("/api/auth/login", {
         method: "POST",
         headers: {
@@ -33,19 +37,60 @@ export default function LoginPage() {
         body: JSON.stringify({ email, password }),
       })
 
+      console.log("📊 Response status:", response.status)
+      console.log("📊 Response headers:", Object.fromEntries(response.headers.entries()))
+
+      // Check if response is JSON
+      const contentType = response.headers.get("content-type")
+      if (!contentType || !contentType.includes("application/json")) {
+        console.error("❌ API returned non-JSON response:", contentType)
+        const textResponse = await response.text()
+        console.error("❌ Response body:", textResponse.substring(0, 500))
+        throw new Error("Server returned an invalid response. Please try again later.")
+      }
+
       const data = await response.json()
+      console.log("📦 Response data:", data)
 
       if (response.ok && data.success) {
+        console.log("✅ Login successful")
+
         // JWT Token im localStorage speichern
-        localStorage.setItem("authToken", data.token)
-        localStorage.setItem("userEmail", email)
-        router.push("/dashboard")
+        if (data.token) {
+          localStorage.setItem("authToken", data.token)
+          localStorage.setItem("userEmail", email)
+          localStorage.setItem("userRole", data.user?.role || "student")
+
+          if (data.user?.id) {
+            localStorage.setItem("userId", data.user.id.toString())
+          }
+        }
+
+        // Warning anzeigen falls Fallback-Modus
+        if (data.warning) {
+          setWarning(data.warning)
+          // Kurz warten damit User die Warnung sehen kann
+          setTimeout(() => {
+            router.push("/dashboard")
+          }, 2000)
+        } else {
+          router.push("/dashboard")
+        }
       } else {
+        console.error("❌ Login failed:", data.error)
         setError(data.error || "Login failed")
       }
     } catch (error) {
-      console.error("Login error:", error)
-      setError("Login failed: " + (error.message || "Unknown error occurred"))
+      console.error("💥 Login error:", error)
+
+      // Benutzerfreundliche Fehlermeldung
+      if (error.message.includes("fetch")) {
+        setError("Network error. Please check your internet connection and try again.")
+      } else if (error.message.includes("JSON")) {
+        setError("Server error. Please try again later.")
+      } else {
+        setError(error.message || "An unexpected error occurred. Please try again.")
+      }
     } finally {
       setIsLoading(false)
     }
@@ -111,6 +156,12 @@ export default function LoginPage() {
               {error && (
                 <Alert variant="destructive" className="rounded-xl">
                   <AlertDescription>{error}</AlertDescription>
+                </Alert>
+              )}
+
+              {warning && (
+                <Alert className="rounded-xl border-orange-200 bg-orange-50">
+                  <AlertDescription className="text-orange-800">{warning}</AlertDescription>
                 </Alert>
               )}
 
