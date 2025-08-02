@@ -1,8 +1,11 @@
-// Authentication Hook
-// TODO: Mit ChatGPT implementieren
+// hooks/useAuth.ts
+'use client';
 
-// Features die hier rein sollen:
-// - User state management
-// - Login/logout functions
-// - Authentication status
-// - User data access
+import { useContext } from 'react';
+import { AuthContext } from '@/contexts/AuthContext';
+
+export const useAuth = () => {
+  const context = useContext(AuthContext);
+  if (!context) throw new Error('useAuth must be used within an AuthProvider');
+  return context;
+};
