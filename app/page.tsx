@@ -29,7 +29,7 @@ export default function HomePage() {
             </div>
 
             <div className="flex items-center gap-4">
-              <Link href="/login">
+              <Link href="/auth/login">
                 <Button
                   variant="outline"
                   className="border-slate-300 text-slate-700 hover:bg-slate-100 hover:text-slate-800 bg-transparent"
@@ -76,7 +76,7 @@ export default function HomePage() {
               Sie in Ihrem eigenen Tempo und werden Sie zum Experten.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <Link href="/login">
+              <Link href="/auth/login">
                 <Button
                   size="lg"
                   className="bg-gradient-to-r from-slate-800 to-slate-700 hover:from-slate-700 hover:to-slate-600 text-white px-8 py-4 text-lg shadow-xl hover:shadow-2xl transition-all duration-200"
@@ -169,7 +169,7 @@ export default function HomePage() {
                 erhalten Sie sofortigen Zugang zu allen Kursen.
               </p>
               <div className="flex flex-col sm:flex-row gap-4 justify-center">
-                <Link href="/login">
+                <Link href="/auth/login">
                   <Button
                     size="lg"
                     variant="outline"
