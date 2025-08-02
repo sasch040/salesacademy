@@ -1,5 +1,5 @@
-// next.config.js
-module.exports = {
+/** @type {import('next').NextConfig} */
+const nextConfig = {
   eslint: {
     ignoreDuringBuilds: true,
   },
@@ -7,7 +7,16 @@ module.exports = {
     ignoreBuildErrors: true,
   },
   images: {
-    domains: ["strapi-speicher.s3.eu-central-1.amazonaws.com"],
+    remotePatterns: [
+      {
+        protocol: "https",
+        hostname: "strapi-speicher.s3.eu-central-1.amazonaws.com",
+        port: "",
+        pathname: "/**",
+      },
+    ],
     unoptimized: true,
   },
 }
+
+module.exports = nextConfig
