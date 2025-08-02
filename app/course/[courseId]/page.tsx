@@ -384,19 +384,19 @@ export default function CoursePage() {
               <div className="w-16 h-16 flex items-center justify-center">
                 <Image
                   src={
-                    course?.logo?.formats?.thumbnail?.url ||
-                    course?.logo?.url ||
-                    `/placeholder.svg?height=64&width=64&text=${encodeURIComponent(course?.title || "Kurs")}`
+                    typeof course?.logo === "string"
+                      ? course.logo
+                      : course?.logo?.formats?.thumbnail?.url ||
+                        course?.logo?.url ||
+                        `/placeholder.svg?height=64&width=64&text=${encodeURIComponent(course?.title || "Kurs")}`
                   }
                   alt={course?.title || "Kurs"}
                   width={64}
                   height={64}
                   className="w-full h-full object-contain drop-shadow-lg rounded-lg"
-                  onError={(e) => {
-                    const fallback = `/placeholder.svg?height=64&width=64&text=${encodeURIComponent(
-                      course?.title || "Kurs",
-                    )}`
-                    console.warn("❌ Logo konnte nicht geladen werden:", e.currentTarget.src)
+                  onError={(e) => { 
+                    console.warn("❌ Course logo konnte nicht geladen werden:", e.currentTarget.src)
+                    const fallback = `/placeholder.svg?height=64&width=64&text=${encodeURIComponent(course?.title || "Kurs")}`
                     e.currentTarget.src = fallback
                   }}
                 />
