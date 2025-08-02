@@ -1,19 +1,20 @@
-// TypeScript Interfaces für Authentication & Progress
-// TODO: Mit ChatGPT implementieren
+// lib/types.ts
 
 export interface User {
-  id: number
-  email: string
-  jwt: string
+  id: number;
+  username: string;
+  email: string;
+}
+
+export interface AuthResponse {
+  jwt: string;
+  user: User;
 }
 
 export interface ModuleProgress {
-  id: number
-  module: number
-  user: number
-  completed: boolean
-  quizCompleted: boolean
-  quizScore: number
+  id: number;
+  module: number;
+  videoWatched: boolean;
+  quizCompleted: boolean;
+  completed: boolean;
 }
-
-// TODO: Weitere Interfaces nach Bedarf hinzufügen
