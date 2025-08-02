@@ -384,8 +384,7 @@ export default function CoursePage() {
               <div className="w-16 h-16 flex items-center justify-center">
                 <Image
                   src={
-                    course.logo?.formats?.thumbnail?.url ||
-                    course.logo?.url ||
+                    course.logo || 
                     `/placeholder.svg?height=64&width=64&text=${encodeURIComponent(course.title || "Kurs")}`
                   }
                   alt={course.title || "Kurs"}
