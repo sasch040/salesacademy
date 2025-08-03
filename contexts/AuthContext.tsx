@@ -40,21 +40,24 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       body: JSON.stringify({ identifier, password }),
     });
 
-    const text = await res.text();
+    const contentType = res.headers.get('content-type');
 
     if (!res.ok) {
-      console.error('❌ Login failed with:', text);
-      throw new Error('Login fehlgeschlagen');
+      let errorMessage = 'Login fehlgeschlagen';
+      if (contentType?.includes('application/json')) {
+        const errData = await res.json();
+        errorMessage = errData?.error?.message || errorMessage;
+      } else {
+        const text = await res.text();
+        console.error('❌ Login response (text):', text);
+        errorMessage = text || errorMessage;
+      }
+      throw new Error(errorMessage);
     }
 
-    try {
-      const data: AuthResponse = JSON.parse(text);
-      setToken(data.jwt);
-      setUser(data.user);
-    } catch (err) {
-      console.error('❌ JSON parsing failed:', err, text);
-      throw new Error('Unerwartete Antwort vom Server');
-    }
+    const data: AuthResponse = await res.json();
+    setToken(data.jwt);
+    setUser(data.user);
   };
 
   const register = async (username: string, email: string, password: string) => {
@@ -64,7 +67,21 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       body: JSON.stringify({ username, email, password }),
     });
 
-    if (!res.ok) throw new Error('Registrierung fehlgeschlagen');
+    const contentType = res.headers.get('content-type');
+
+    if (!res.ok) {
+      let errorMessage = 'Registrierung fehlgeschlagen';
+      if (contentType?.includes('application/json')) {
+        const errData = await res.json();
+        errorMessage = errData?.error?.message || errorMessage;
+      } else {
+        const text = await res.text();
+        console.error('❌ Register response (text):', text);
+        errorMessage = text || errorMessage;
+      }
+      throw new Error(errorMessage);
+    }
+
     const data: AuthResponse = await res.json();
     setToken(data.jwt);
     setUser(data.user);
