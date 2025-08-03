@@ -111,8 +111,9 @@ export async function POST(request: NextRequest) {
           } else {
             console.warn("⚠️ Could not update lastLogin:", updateResponse.status)
           }
-        } catch (updateError) {
-          console.warn("⚠️ Could not update lastLogin (non-critical):", updateError.message)
+        } catch (updateError: unknown) {
+          const err = updateError as Error
+          console.warn("⚠️ Could not update lastLogin (non-critical):", err.message)
         }
 
         // JWT Token Handling
@@ -120,7 +121,8 @@ export async function POST(request: NextRequest) {
           expiresIn: "24h",
         })
         console.log("✅ JWT Token generated successfully")
-        cookies().set("token", token, {
+        const cookieStore = await cookies()
+        cookieStore.set("token", token, {
           httpOnly: true,
           secure: true,
           sameSite: "lax",
@@ -144,8 +146,9 @@ export async function POST(request: NextRequest) {
         console.log("❌ Invalid credentials or user not found in Strapi")
         return NextResponse.json({ error: "Invalid email or password" }, { status: 401 })
       }
-    } catch (strapiError) {
-      console.error("🚨 Strapi connection failed:", strapiError.message)
+    } catch (strapiError: unknown) {
+      const err = strapiError as Error
+      console.error("🚨 Strapi connection failed:", err.message)
 
       // Detaillierte Fehleranalyse
       if (strapiError.name === "AbortError") {
@@ -194,8 +197,9 @@ export async function POST(request: NextRequest) {
         )
       }
     }
-  } catch (error) {
-    console.error("💥 Login API critical error:", error)
+  } catch (error: unknown) {
+    const err = error as Error
+    console.error("💥 Login API critical error:", err.message)
 
     // Always return valid JSON, even for critical errors
     return NextResponse.json(
