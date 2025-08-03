@@ -37,7 +37,7 @@ export async function POST(request: NextRequest) {
         }),
         signal: controller.signal,
       })
-
+      const { jwt: strapiJwt, user } = await response.json()
 
       clearTimeout(timeoutId)
 
@@ -117,10 +117,8 @@ export async function POST(request: NextRequest) {
         }
 
         // JWT Token Handling
-        const token = jwt.sign({ email: userEmail, role: userRole, strapiId: user.id }, JWT_SECRET, {
-          expiresIn: "24h",
-        })
         console.log("✅ JWT Token generated successfully")
+        const token = strapiJwt // ← Das kommt direkt aus der Strapi-Antwort
         const cookieStore = await cookies()
         cookieStore.set("token", token, {
           httpOnly: true,
@@ -151,11 +149,11 @@ export async function POST(request: NextRequest) {
       console.error("🚨 Strapi connection failed:", err.message)
 
       // Detaillierte Fehleranalyse
-      if (strapiError.name === "AbortError") {
+      if (err.name === "AbortError") {
         console.error("⏰ Strapi request timeout (15s)")
-      } else if (strapiError.message.includes("ECONNREFUSED")) {
+      } else if (err.message.includes("ECONNREFUSED")) {
         console.error("🔌 Connection refused - is Strapi running on", STRAPI_URL, "?")
-      } else if (strapiError.message.includes("fetch")) {
+      } else if (err.message.includes("fetch")) {
         console.error("🌐 Network error - check Strapi connection")
       }
 
@@ -191,7 +189,7 @@ export async function POST(request: NextRequest) {
           {
             error: "Login failed. Please check your credentials.",
             details: `Strapi unavailable and credentials not valid for fallback mode.`,
-            strapiError: strapiError.message,
+            strapiError: err.message,
           },
           { status: 401 },
         )
@@ -205,7 +203,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(
       {
         error: "Internal server error during login",
-        details: error.message || "Unknown error occurred",
+        details: err.message || "Unknown error occurred",
         timestamp: new Date().toISOString(),
       },
       { status: 500 },
