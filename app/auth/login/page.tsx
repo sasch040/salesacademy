@@ -29,7 +29,7 @@ export default function LoginPage() {
     try {
       console.log("🔄 Attempting login...")
 
-      const response = await fetch("/api/auth/login", {
+      const response = await fetch(strapiUrl, ...) // ← das hast du korrekt vorher definiert!, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
