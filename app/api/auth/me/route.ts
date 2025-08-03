@@ -4,7 +4,8 @@ import { NextResponse } from "next/server"
 const STRAPI_URL = "https://strapi-elearning-8rff.onrender.com"
 
 export async function GET() {
-  const token = cookies().get("token")?.value
+  const cookieStore = await cookies()
+  const token = cookieStore.get("token")?.value
 
   if (!token) {
     return NextResponse.json({ error: "Nicht eingeloggt" }, { status: 401 })
