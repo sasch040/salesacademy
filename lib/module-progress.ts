@@ -42,13 +42,12 @@ export async function saveModuleProgress(progress: {
       },
       body: JSON.stringify(progress),
     })
-
+    const result = await response.json()
     if (!response.ok) {
       const errorData = await response.json()
       throw new Error(errorData.error || `HTTP ${response.status}`)
     }
 
-    const result = await response.json()
     console.log("✅ Module progress saved:", result)
     return result
   } catch (error) {
@@ -72,13 +71,12 @@ export async function getModuleProgress(params: {
     console.log("📡 Fetching module progress from:", url)
 
     const response = await fetch(url)
+    const result = await response.json()
 
     if (!response.ok) {
-      const errorData = await response.json()
-      throw new Error(errorData.error || `HTTP ${response.status}`)
+      throw new Error(result.error || `HTTP ${response.status}`)
     }
-
-    const result = await response.json()
+  
     console.log("✅ Module progress loaded:", result)
     return result
   } catch (error) {
