@@ -1,3 +1,4 @@
+import { cookies } from "next/headers"
 import { type NextRequest, NextResponse } from "next/server"
 import jwt from "jsonwebtoken"
 
@@ -118,6 +119,14 @@ export async function POST(request: NextRequest) {
           expiresIn: "24h",
         })
         console.log("✅ JWT Token generated successfully")
+        cookies().set("token", token, {
+          httpOnly: true,
+          secure: true,
+          sameSite: "lax",
+          path: "/",
+          maxAge: 60 * 60 * 24 * 7, // 1 Woche
+        })
+        console.log("🍪 Cookie gesetzt")
 
         return NextResponse.json({
           success: true,
