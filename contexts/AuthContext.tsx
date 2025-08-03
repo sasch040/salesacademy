@@ -10,6 +10,7 @@ interface AuthContextType {
   register: (username: string, email: string, password: string) => Promise<void>
   logout: () => Promise<void>
 }
+export const AuthContext = createContext<AuthContextType | undefined>(undefined)
 
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [user, setUser] = useState<User | null>(null)
