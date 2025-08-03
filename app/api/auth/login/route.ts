@@ -52,20 +52,22 @@ export async function POST(request: NextRequest) {
         console.error("❌ Response body:", textResponse.substring(0, 500))
         throw new Error(`Strapi returned non-JSON response: ${response.status}`)
       }
-
+      const data = await response.json()
+      console.log("✅ Strapi response received")
       if (!response.ok) {
-        const errorData = await response.json().catch(() => ({ message: "Unknown error" }))
-        console.error("❌ Strapi API Error:", response.status, errorData)
+        console.error("❌ Strapi API Error:", response.status, data)
 
         if (response.status === 400) {
           return NextResponse.json({ error: "Invalid email or password" }, { status: 400 })
         }
-
-        throw new Error(`Strapi authentication failed: ${response.status}`)
-      }
-
-      const data = await response.json()
-      console.log("✅ Strapi response received")
+          return NextResponse.json(
+              {
+                error: "Strapi authentication failed",
+                details: data?.error?.message || "Unknown error",
+              },
+              { status: response.status }
+            )
+          }
 
       // 🔧 Verbesserte Datenstruktur-Prüfung
       if (data && data.user && data.jwt) {
