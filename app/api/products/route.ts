@@ -127,13 +127,11 @@ export async function GET() {
         "Content-Type": "application/json",
       },
     })
-
+    const data: StrapiResponse = await response.json()
     if (!response.ok) {
-      console.error("❌ Course API failed:", response.status, response.statusText)
+      console.error("❌ Course API failed:", response.status, data)
       throw new Error(`Course API failed: ${response.status}`)
     }
-
-    const data: StrapiResponse = await response.json()
     console.log("✅ Course API Response received")
     console.log("📊 Total courses found:", data.data?.length || 0)
 

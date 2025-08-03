@@ -32,7 +32,7 @@ export async function GET(request: NextRequest) {
     })
 
     clearTimeout(timeoutId)
-
+    
     if (!response.ok) {
       const errorText = await response.text()
       console.error("💥 Quizsets API error:", response.status, response.statusText, errorText)

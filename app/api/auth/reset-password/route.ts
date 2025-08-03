@@ -38,10 +38,9 @@ export async function POST(request: NextRequest) {
       })
 
       clearTimeout(timeoutId)
-
+      const data = await response.json()
       if (!response.ok) {
-        const errorData = await response.json()
-        console.error("❌ Strapi Reset Password Error:", response.status, errorData)
+        console.error("❌ Strapi Reset Password Error:", response.status, data)
 
         if (response.status === 400) {
           return NextResponse.json(
@@ -54,8 +53,6 @@ export async function POST(request: NextRequest) {
 
         throw new Error(`Strapi returned ${response.status}: ${response.statusText}`)
       }
-
-      const data = await response.json()
       console.log("✅ Strapi reset password successful")
 
       if (data && data.user) {
@@ -69,28 +66,30 @@ export async function POST(request: NextRequest) {
       } else {
         throw new Error("Invalid response from Strapi")
       }
-    } catch (strapiError) {
-      console.error("🚨 Strapi reset password failed:", strapiError.message)
+    } catch (strapiError: unknown) {
+      const err = strapiError as Error
+      console.error("🚨 Strapi reset password failed:", err.message)
 
-      if (strapiError.name === "AbortError") {
+      if (err.name === "AbortError") {
         return NextResponse.json({ error: "Anfrage dauert zu lange. Bitte versuchen Sie es erneut." }, { status: 408 })
       }
 
       return NextResponse.json(
         {
           error: "Fehler beim Zurücksetzen des Passworts. Token könnte ungültig oder abgelaufen sein.",
-          details: strapiError.message,
+          details: err.message,
         },
         { status: 400 },
       )
     }
   } catch (error) {
-    console.error("💥 Reset Password API critical error:", error)
+    const e = error as Error
+    console.error("💥 Reset Password API critical error:", e)
 
     return NextResponse.json(
       {
         error: "Interner Serverfehler beim Zurücksetzen des Passworts",
-        details: error.message || "Unbekannter Fehler",
+        details: e.message || "Unbekannter Fehler",
         timestamp: new Date().toISOString(),
       },
       { status: 500 },

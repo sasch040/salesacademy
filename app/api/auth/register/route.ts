@@ -39,18 +39,16 @@ export async function POST(request: NextRequest) {
 
       clearTimeout(timeoutId)
 
+      const data = await response.json()
       if (!response.ok) {
-        const errorData = await response.json()
-        console.error("❌ Strapi Registration Error:", response.status, errorData)
+        console.error("❌ Strapi Registration Error:", response.status, data)
 
-        if (response.status === 400 && errorData.error?.message?.includes("Email or Username are already taken")) {
+        if (response.status === 400 && data.error?.message?.includes("Email or Username are already taken")) {
           return NextResponse.json({ error: "Diese E-Mail-Adresse ist bereits registriert" }, { status: 400 })
         }
 
         throw new Error(`Strapi returned ${response.status}: ${response.statusText}`)
       }
-
-      const data = await response.json()
       console.log("✅ Strapi registration successful")
 
       if (data && data.user && data.jwt) {
@@ -67,10 +65,11 @@ export async function POST(request: NextRequest) {
       } else {
         throw new Error("Invalid response from Strapi")
       }
-    } catch (strapiError) {
-      console.error("🚨 Strapi registration failed:", strapiError.message)
+    } catch (strapiError: unknown) {
+      const err = strapiError as Error
+      console.error("🚨 Strapi registration failed:", err.message)
 
-      if (strapiError.name === "AbortError") {
+      if (err.name === "AbortError") {
         return NextResponse.json(
           { error: "Registrierung dauert zu lange. Bitte versuchen Sie es erneut." },
           { status: 408 },
@@ -80,18 +79,19 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(
         {
           error: "Registrierung fehlgeschlagen. Bitte versuchen Sie es später erneut.",
-          details: strapiError.message,
+          details: err.message,
         },
         { status: 503 },
       )
     }
   } catch (error) {
-    console.error("💥 Registration API critical error:", error)
+    const e = error as Error
+    console.error("💥 Registration API critical error:", e)
 
     return NextResponse.json(
       {
         error: "Interner Serverfehler bei der Registrierung",
-        details: error.message || "Unbekannter Fehler",
+        details: e.message || "Unbekannter Fehler",
         timestamp: new Date().toISOString(),
       },
       { status: 500 },

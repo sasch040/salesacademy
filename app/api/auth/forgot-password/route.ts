@@ -32,10 +32,9 @@ export async function POST(request: NextRequest) {
       })
 
       clearTimeout(timeoutId)
-
+      const data = await response.json()
       if (!response.ok) {
-        const errorData = await response.json()
-        console.error("❌ Strapi Forgot Password Error:", response.status, errorData)
+        console.error("❌ Strapi Forgot Password Error:", response.status, data)
 
         if (response.status === 400) {
           return NextResponse.json(
@@ -48,18 +47,17 @@ export async function POST(request: NextRequest) {
 
         throw new Error(`Strapi returned ${response.status}: ${response.statusText}`)
       }
-
-      const data = await response.json()
       console.log("✅ Strapi forgot password request successful")
 
       return NextResponse.json({
         success: true,
         message: "E-Mail zum Zurücksetzen des Passworts wurde gesendet",
       })
-    } catch (strapiError) {
-      console.error("🚨 Strapi forgot password failed:", strapiError.message)
+    } catch (strapiError: unknown) {
+      const err = strapiError as Error
+      console.error("🚨 Strapi forgot password failed:", err.message)
 
-      if (strapiError.name === "AbortError") {
+      if (err.name === "AbortError") {
         return NextResponse.json({ error: "Anfrage dauert zu lange. Bitte versuchen Sie es erneut." }, { status: 408 })
       }
 
@@ -72,12 +70,13 @@ export async function POST(request: NextRequest) {
       })
     }
   } catch (error) {
-    console.error("💥 Forgot Password API critical error:", error)
+    const e = error as Error
+    console.error("💥 Forgot Password API critical error:", e)
 
     return NextResponse.json(
       {
         error: "Interner Serverfehler",
-        details: error.message || "Unbekannter Fehler",
+        details: e.message || "Unbekannter Fehler",
         timestamp: new Date().toISOString(),
       },
       { status: 500 },
