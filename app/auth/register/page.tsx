@@ -51,7 +51,7 @@ export default function RegisterPage() {
 
       const data = await response.json()
 
-      if (response.ok && data.success) {
+      if (response.ok && data.user) {
         setSuccess("Konto erfolgreich erstellt! Sie können sich jetzt anmelden.")
         setTimeout(() => {
           router.push("/auth/login")

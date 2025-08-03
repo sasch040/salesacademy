@@ -35,7 +35,7 @@ export default function ForgotPasswordPage() {
 
       const data = await response.json()
 
-      if (response.ok && data.success) {
+      if (response.ok && data.message) {
         setSuccess("E-Mail zum Zurücksetzen des Passworts wurde gesendet! Überprüfen Sie Ihr Postfach.")
         setEmail("")
       } else {

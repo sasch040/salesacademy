@@ -52,7 +52,7 @@ export default function LoginPage() {
       const data = await response.json()
       console.log("📦 Response data:", data)
 
-      if (response.ok && data.success) {
+      if (response.ok && data.user) {
         console.log("✅ Login successful")
 
         // JWT Token im localStorage speichern

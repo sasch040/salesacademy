@@ -98,7 +98,7 @@ export default function ResetPasswordPage() {
 
       const data = await response.json()
 
-      if (response.ok && data.success) {
+      if (response.ok && data.user) {
         setSuccess("Passwort erfolgreich zurückgesetzt! Sie werden zur Anmeldung weitergeleitet...")
         setTimeout(() => {
           router.push("/auth/login?reset=success")

@@ -24,14 +24,15 @@ export async function POST(request: NextRequest) {
       const controller = new AbortController()
       const timeoutId = setTimeout(() => controller.abort(), 15000) // 15 Sekunden für Render
 
-      const response = await fetch(strapiUrl, {
+      const response = await fetch("/api/auth/login", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
+        credentials: "include",
         body: JSON.stringify({
-          identifier: email,
-          password,
+        identifier: email,
+        password,
         }),
         signal: controller.signal,
       })
