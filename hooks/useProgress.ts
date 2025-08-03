@@ -2,7 +2,7 @@
 'use client';
 
 import { useContext } from 'react';
-import { useProgress } from '@/contexts/ProgressContext';
+import { ProgressContext } from '@/contexts/ProgressContext';
 
 export const useProgress = () => {
   const context = useContext(ProgressContext);

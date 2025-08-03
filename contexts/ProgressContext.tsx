@@ -12,7 +12,7 @@ interface ProgressContextType {
   update: (moduleId: number, updates: Partial<ModuleProgress>) => Promise<void>;
 }
 
-const ProgressContext = createContext<ProgressContextType | undefined>(undefined);
+export const ProgressContext = createContext<ProgressContextType | undefined>(undefined);
 
 export const ProgressProvider = ({ children }: { children: React.ReactNode }) => {
   const [progress, setProgress] = useState<ModuleProgress[]>([]);
@@ -52,11 +52,3 @@ export const ProgressProvider = ({ children }: { children: React.ReactNode }) =>
     </ProgressContext.Provider>
   );
 };
-
-export function useProgress(): ProgressContextType {
-  const context = useContext(ProgressContext);
-  if (!context) {
-    throw new Error('useProgress must be used within a ProgressProvider');
-  }
-  return context;
-}
