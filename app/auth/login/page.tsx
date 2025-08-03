@@ -29,11 +29,12 @@ export default function LoginPage() {
     try {
       console.log("🔄 Attempting login...")
 
-      const response = await fetch(strapiUrl, ...) // ← das hast du korrekt vorher definiert!, {
+      const response = await fetch("/api/auth/login", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
+        credentials: "include", // wichtig für Cookie-Auth
         body: JSON.stringify({ email, password }),
       })
 

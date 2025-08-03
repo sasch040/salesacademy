@@ -25,18 +25,19 @@ export async function POST(request: NextRequest) {
       const controller = new AbortController()
       const timeoutId = setTimeout(() => controller.abort(), 15000) // 15 Sekunden für Render
 
-      const response = await fetch(strapiUrl, ...) // ← das hast du korrekt vorher definiert!", {
+      const response = await fetch(strapiUrl, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
         credentials: "include",
         body: JSON.stringify({
-        identifier: email,
-        password,
+          identifier: email,
+          password,
         }),
         signal: controller.signal,
       })
+
 
       clearTimeout(timeoutId)
 
