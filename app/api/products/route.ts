@@ -1,3 +1,4 @@
+import { cookies } from "next/headers"
 import { NextResponse } from "next/server"
 
 interface StrapiLogo {
@@ -113,10 +114,16 @@ export async function GET() {
     // Course API mit Logo-Population
     const courseApiUrl = "https://strapi-elearning-8rff.onrender.com/api/courses?populate=*"
     console.log("📡 Fetching courses from:", courseApiUrl)
+    const cookieStore = await cookies()
+    const token = cookieStore.get("token")?.value
 
+    if (!token) {
+      console.warn("❌ Kein Token im Cookie – Zugriff verweigert")
+      return NextResponse.json({ error: "Nicht eingeloggt" }, { status: 401 })
+    }
     const response = await fetch(courseApiUrl, {
       headers: {
-        Authorization: `Bearer ${process.env.NEXT_PUBLIC_STRAPI_API_TOKEN}`,
+        Authorization: `Bearer ${token}`,
         "Content-Type": "application/json",
       },
     })
@@ -167,6 +174,7 @@ export async function GET() {
     console.log(`📊 Logo Statistics: ${withLogos} with S3 logos, ${withoutLogos} with placeholders`)
 
     return NextResponse.json({ products })
+
   } catch (error) {
     console.error("💥 Products API Error:", error)
     return NextResponse.json(
