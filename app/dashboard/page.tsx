@@ -1,5 +1,7 @@
 "use client"
-
+import { useProgress } from "@/hooks/useProgress"
+import ProgressTracker from "@/components/progress/ProgressTracker"
+import ProtectedRoute from "@/components/auth/ProtectedRoute"
 import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
@@ -10,12 +12,10 @@ import {
   Clock,
   Award,
   TrendingUp,
-  Users,
   Target,
   ChevronRight,
   Play,
   CheckCircle,
-  Star,
   BarChart3,
   LogOut,
 } from "lucide-react"
@@ -39,6 +39,11 @@ export default function Dashboard() {
   const [error, setError] = useState<string | null>(null)
   const [userEmail, setUserEmail] = useState("")
   const router = useRouter()
+  const { progress } = useProgress()
+  
+  const completedCount = progress.filter(p => p.completed).length
+  const totalCount = progress.length
+  const percent = totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : 0
 
   // User authentication
   useEffect(() => {
@@ -128,7 +133,8 @@ export default function Dashboard() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100">
+    <ProtectedRoute>
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100">
       {/* Header */}
       <header className="backdrop-blur-sm bg-white/80 border-b border-slate-200/60 sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
@@ -141,7 +147,7 @@ export default function Dashboard() {
               className="h-8 w-auto drop-shadow-lg"
               onError={(e) => {
                 console.warn("⚠️ Sales Academy logo failed to load")
-                e.currentTarget.style.display = "none"
+                e.currentTarget.src = "/placeholder.svg?height=32&width=32&text=SA"
               }}
             />
             <div>
@@ -229,7 +235,7 @@ export default function Dashboard() {
                   <TrendingUp className="h-6 w-6 text-white" />
                 </div>
                 <div>
-                  <p className="text-2xl font-bold text-slate-800">0%</p>
+                  <p className="text-2xl font-bold text-slate-800">{percent}%</p>
                   <p className="text-sm text-slate-600 font-light">Gesamtfortschritt</p>
                 </div>
               </div>
@@ -291,23 +297,12 @@ export default function Dashboard() {
 
                     <p className="text-slate-600 font-light leading-relaxed mb-6 line-clamp-3">{product.description}</p>
 
-                    <div className="flex items-center justify-between mb-6">
+                    <div className="mb-6">
                       <div className="flex items-center gap-4 text-sm text-slate-600">
                         <div className="flex items-center gap-1">
                           <Clock className="h-4 w-4" />
                           <span>~45 Min</span>
                         </div>
-                        <div className="flex items-center gap-1">
-                          <Users className="h-4 w-4" />
-                          <span>Alle Level</span>
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-1">
-                        <Star className="h-4 w-4 text-yellow-500 fill-current" />
-                        <Star className="h-4 w-4 text-yellow-500 fill-current" />
-                        <Star className="h-4 w-4 text-yellow-500 fill-current" />
-                        <Star className="h-4 w-4 text-yellow-500 fill-current" />
-                        <Star className="h-4 w-4 text-yellow-500 fill-current" />
                       </div>
                     </div>
 
@@ -381,5 +376,6 @@ export default function Dashboard() {
         </div>
       </main>
     </div>
+  </ProtectedRoute>
   )
 }

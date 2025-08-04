@@ -1,13 +1,16 @@
+import { cookies } from "next/headers"
 import { type NextRequest, NextResponse } from "next/server"
+import jwt from "jsonwebtoken"
 
 const STRAPI_URL = "https://strapi-elearning-8rff.onrender.com"
+const JWT_SECRET = process.env.JWT_SECRET || "your_jwt_secret"
 
 export async function POST(request: NextRequest) {
   try {
-    const { email } = await request.json()
+    const { email, password } = await request.json()
 
-    if (!email) {
-      return NextResponse.json({ error: "Email is required" }, { status: 400 })
+    if (!email || !password) {
+      return NextResponse.json({ error: "Email and password are required" }, { status: 400 })
     }
 
     console.log("🔍 Attempting login for:", email)
@@ -16,48 +19,70 @@ export async function POST(request: NextRequest) {
 
     // Prüfe gegen Strapi Authorized Users mit Timeout
     try {
-      const strapiUrl = `${STRAPI_URL}/api/authorized-users?filters[email][$eq]=${email}&filters[isActive][$eq]=true`
+      const strapiUrl = `${STRAPI_URL}/api/auth/local`
       console.log("📡 Fetching from:", strapiUrl)
 
       const controller = new AbortController()
-      const timeoutId = setTimeout(() => controller.abort(), 10000) // 10 Sekunden für Render
+      const timeoutId = setTimeout(() => controller.abort(), 15000) // 15 Sekunden für Render
 
       const response = await fetch(strapiUrl, {
-        method: "GET",
+        method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${process.env.STRAPI_API_TOKEN}`,
         },
+        credentials: "include",
+        body: JSON.stringify({
+          identifier: email,
+          password,
+        }),
         signal: controller.signal,
       })
+      const data = await response.json()
+      const strapiJwt = data.jwt
+      const user = data.user
 
       clearTimeout(timeoutId)
 
-      if (!response.ok) {
-        console.error("❌ Strapi API Error:", response.status, response.statusText)
-        throw new Error(`Strapi returned ${response.status}: ${response.statusText}`)
-      }
+      console.log("📊 Strapi response status:", response.status)
+      console.log("📊 Strapi response headers:", Object.fromEntries(response.headers.entries()))
 
-      const data = await response.json()
+      // Check if response is JSON
+      const contentType = response.headers.get("content-type")
+      if (!contentType || !contentType.includes("application/json")) {
+        console.error("❌ Strapi returned non-JSON response:", contentType)
+        const textResponse = await response.text()
+        console.error("❌ Response body:", textResponse.substring(0, 500))
+        throw new Error(`Strapi returned non-JSON response: ${response.status}`)
+      }
       console.log("✅ Strapi response received")
+      if (!response.ok) {
+        console.error("❌ Strapi API Error:", response.status, data)
+
+        if (response.status === 400) {
+          return NextResponse.json({ error: "Invalid email or password" }, { status: 400 })
+        }
+          return NextResponse.json(
+              {
+                error: "Strapi authentication failed",
+                details: data?.error?.message || "Unknown error",
+              },
+              { status: response.status }
+            )
+          }
 
       // 🔧 Verbesserte Datenstruktur-Prüfung
-      if (data && data.data && Array.isArray(data.data) && data.data.length > 0) {
-        const user = data.data[0]
+      if (data && data.user && data.jwt) {
+        const user = data.user
         console.log("👤 User found in Strapi")
 
         // Prüfe verschiedene mögliche Datenstrukturen
         let userEmail = null
         let userRole = "student"
 
-        if (user.attributes && user.attributes.email) {
-          // Strapi v4 Format
-          userEmail = user.attributes.email
-          userRole = user.attributes.role || "student"
-        } else if (user.email) {
+        if (user.email) {
           // Direktes Format
           userEmail = user.email
-          userRole = user.role || "student"
+          userRole = user.role?.name || user.role || "student"
         } else {
           console.error("❌ Unexpected user data structure:", user)
           throw new Error("User data structure not recognized")
@@ -70,16 +95,14 @@ export async function POST(request: NextRequest) {
           const updateController = new AbortController()
           const updateTimeoutId = setTimeout(() => updateController.abort(), 5000)
 
-          const updateResponse = await fetch(`${STRAPI_URL}/api/authorized-users/${user.id}`, {
+          const updateResponse = await fetch(`${STRAPI_URL}/api/users/${user.id}`, {
             method: "PUT",
             headers: {
               "Content-Type": "application/json",
-              Authorization: `Bearer ${process.env.STRAPI_API_TOKEN}`,
+              Authorization: `Bearer ${data.jwt}`,
             },
             body: JSON.stringify({
-              data: {
-                lastLogin: new Date().toISOString(),
-              },
+              lastLogin: new Date().toISOString(),
             }),
             signal: updateController.signal,
           })
@@ -91,80 +114,61 @@ export async function POST(request: NextRequest) {
           } else {
             console.warn("⚠️ Could not update lastLogin:", updateResponse.status)
           }
-        } catch (updateError) {
-          console.warn("⚠️ Could not update lastLogin (non-critical):", updateError.message)
+        } catch (updateError: unknown) {
+          const err = updateError as Error
+          console.warn("⚠️ Could not update lastLogin (non-critical):", err.message)
         }
+
+        // JWT Token Handling
+        console.log("✅ JWT Token generated successfully")
+        const token = strapiJwt // ← Das kommt direkt aus der Strapi-Antwort
+        const cookieStore = await cookies()
+        cookieStore.set("token", token, {
+          httpOnly: true,
+          secure: true,
+          sameSite: "lax",
+          path: "/",
+          maxAge: 60 * 60 * 24 * 7, // 1 Woche
+        })
+        console.log("🍪 Cookie gesetzt")
 
         return NextResponse.json({
           success: true,
           message: "Login successful via Strapi",
           user: {
+            id: user.id,
             email: userEmail,
             role: userRole,
+            username: user.username,
           },
+          token,
         })
       } else {
-        console.log("❌ User not found or inactive in Strapi")
-        return NextResponse.json(
-          { error: "Access denied. Your email is not authorized for this platform." },
-          { status: 403 },
-        )
+        console.log("❌ Invalid credentials or user not found in Strapi")
+        return NextResponse.json({ error: "Invalid email or password" }, { status: 401 })
       }
-    } catch (strapiError) {
-      console.error("🚨 Strapi connection failed:", strapiError.message)
+    } catch (strapiError: unknown) {
+      const err = strapiError as Error
+      console.error("🚨 Strapi connection failed:", err.message)
 
       // Detaillierte Fehleranalyse
-      if (strapiError.name === "AbortError") {
-        console.error("⏰ Strapi request timeout (10s)")
-      } else if (strapiError.message.includes("ECONNREFUSED")) {
+      if (err.name === "AbortError") {
+        console.error("⏰ Strapi request timeout (15s)")
+      } else if (err.message.includes("ECONNREFUSED")) {
         console.error("🔌 Connection refused - is Strapi running on", STRAPI_URL, "?")
-      } else if (strapiError.message.includes("fetch")) {
+      } else if (err.message.includes("fetch")) {
         console.error("🌐 Network error - check Strapi connection")
       }
-
-      // Fallback zu hardcoded Liste
-      console.log("🔄 Falling back to hardcoded authorization list...")
-
-      const FALLBACK_EMAILS = [
-        "admin@example.com",
-        "student1@example.com",
-        "student2@example.com",
-        "teacher@example.com",
-        "demo@elearning.com",
-        "test@test.com",
-        email.toLowerCase(), // Aktuelle E-Mail auch erlauben für Testing
-      ]
-
-      const isAuthorized = FALLBACK_EMAILS.includes(email.toLowerCase())
-
-      if (isAuthorized) {
-        console.log("✅ User authorized via fallback list")
-        return NextResponse.json({
-          success: true,
-          message: "Login successful (fallback mode - Strapi unavailable)",
-          user: { email, role: "student" },
-          warning: "Strapi connection failed, using fallback authentication",
-        })
-      } else {
-        return NextResponse.json(
-          {
-            error: "Access denied. Strapi unavailable and email not in fallback list.",
-            details: `Please check if Strapi is running on ${STRAPI_URL} or contact administrator.`,
-            strapiError: strapiError.message,
-            fallbackEmails: FALLBACK_EMAILS,
-          },
-          { status: 503 },
-        )
-      }
     }
-  } catch (error) {
-    console.error("💥 Login API critical error:", error)
+  } catch (error: unknown) {
+    const err = error as Error
+    console.error("💥 Login API critical error:", err.message)
 
     // Always return valid JSON, even for critical errors
     return NextResponse.json(
       {
         error: "Internal server error during login",
-        details: error.message || "Unknown error occurred",
+        details: err.message || "Unknown error occurred",
         timestamp: new Date().toISOString(),
       },
       { status: 500 },

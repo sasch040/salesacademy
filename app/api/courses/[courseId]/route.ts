@@ -168,8 +168,8 @@ async function loadQuizsets() {
   return {}
 }
 
-export async function GET(request: NextRequest, { params }: { params: { courseId: string } }) {
-  const courseId = params.courseId
+export async function GET(request: NextRequest, context: { params: { courseId: string } }) {
+  const { courseId } = context.params // ✅ Jetzt korrekt
   console.log(`\n🔍 === COURSE API DEBUG INFO ===`)
   console.log(`🎯 Course ID from URL: ${courseId}`)
   console.log("🌐 Strapi URL:", STRAPI_URL)
@@ -189,16 +189,24 @@ export async function GET(request: NextRequest, { params }: { params: { courseId
 
     console.log("📡 Response status:", response.status)
     console.log("📡 Response OK:", response.ok)
+    
+    const raw = await response.text()
 
-    if (!response.ok) {
-      const errorText = await response.text()
-      console.error("💥 Courses API error:", response.status, response.statusText, errorText)
-      return NextResponse.json({ error: "Failed to fetch courses from Strapi" }, { status: response.status })
+    let data: any
+    try {
+      data = JSON.parse(raw)
+    } catch (err) {
+      console.error("❌ Could not parse JSON from Strapi:", raw)
+      return NextResponse.json({ error: "Strapi returned invalid JSON" }, { status: 500 })
     }
 
-    const data = await response.json()
-    console.log("📊 Raw Courses API Response received")
-    console.log("📊 Courses count:", data.data?.length || 0)
+    if (!response.ok) {
+      console.error("💥 Courses API error:", response.status, response.statusText, raw)
+      return NextResponse.json({ error: "Failed to fetch courses from Strapi", details: raw }, { status: response.status })
+    }
+
+    console.log("📦 Raw Courses API Response received")
+    console.log("📦 Courses count:", data.data?.length || 0)
 
     // 🔍 SUCHE NACH DEM COURSE MIT DER GEGEBENEN ID
     let foundCourse = null
@@ -337,11 +345,10 @@ export async function GET(request: NextRequest, { params }: { params: { courseId
     console.log("🖼️ === LOGO EXTRACTION ===")
 
     // Extrahiere Logo aus Strapi Course Response
-    const logoData = courseAttributes.logo
-    console.log("Logo Data Structure:", JSON.stringify(logoData, null, 2))
+    const logoAttributes = courseAttributes.logo
+    console.log("Logo Data Structure:", JSON.stringify(logoAttributes, null, 2))
 
-    if (logoData?.data) {
-      const logoAttributes = logoData.data.attributes || logoData.data
+    if (logoAttributes) {
       console.log("Logo Attributes:", JSON.stringify(logoAttributes, null, 2))
 
       // Priorisiere thumbnail URL aus formats
@@ -367,21 +374,6 @@ export async function GET(request: NextRequest, { params }: { params: { courseId
       if (logos[courseSlug]) {
         courseLogo = logos[courseSlug].url
         console.log(`📷 Using logo from Logos API: ${courseLogo}`)
-      }
-    }
-
-    // Fallback auf lokale Bilder basierend auf Kurs-Titel
-    if (!courseLogo) {
-      const courseTitle = courseAttributes.title?.toLowerCase()
-      if (courseTitle?.includes("smart nexus")) {
-        courseLogo = "/images/smart-nexus-clean.png"
-        console.log(`📷 Using local Smart Nexus logo: ${courseLogo}`)
-      } else if (courseTitle?.includes("smart lens")) {
-        courseLogo = "/images/smart-lens-clean.png"
-        console.log(`📷 Using local Smart Lens logo: ${courseLogo}`)
-      } else if (courseTitle?.includes("hacktracks")) {
-        courseLogo = "/images/hacktracks-clean.png"
-        console.log(`📷 Using local HackTracks logo: ${courseLogo}`)
       }
     }
 

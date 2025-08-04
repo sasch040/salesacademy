@@ -44,13 +44,12 @@ export async function GET(request: NextRequest) {
         "Content-Type": "application/json",
       },
     })
-
+    const data = await response.json()
     if (!response.ok) {
-      console.error("❌ Strapi API failed:", response.status, response.statusText)
+      console.error("❌ Strapi API failed:", response.status, data)
       return NextResponse.json({ error: "Failed to fetch from Strapi" }, { status: response.status })
     }
 
-    const data = await response.json()
     console.log("✅ Strapi response:", data.data?.length || 0, "items")
 
     // Transform data

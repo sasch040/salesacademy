@@ -7,8 +7,15 @@ const nextConfig = {
     ignoreBuildErrors: true,
   },
   images: {
+    remotePatterns: [
+      {
+        protocol: "https",
+        hostname: "strapi-speicher.s3.eu-central-1.amazonaws.com",
+        pathname: "/**",
+      },
+    ],
     unoptimized: true,
   },
 }
 
-export default nextConfig
+module.exports = nextConfig
