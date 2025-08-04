@@ -168,8 +168,8 @@ async function loadQuizsets() {
   return {}
 }
 
-export async function GET(request: NextRequest, { params }: { params: { courseId: string } }) {
-  const courseId = params.courseId
+export async function GET(request: NextRequest, context: { params: { courseId: string } }) {
+  const { courseId } = context.params // ✅ Jetzt korrekt
   console.log(`\n🔍 === COURSE API DEBUG INFO ===`)
   console.log(`🎯 Course ID from URL: ${courseId}`)
   console.log("🌐 Strapi URL:", STRAPI_URL)
@@ -190,15 +190,23 @@ export async function GET(request: NextRequest, { params }: { params: { courseId
     console.log("📡 Response status:", response.status)
     console.log("📡 Response OK:", response.ok)
     
-    const data = await response.json()
-    if (!response.ok) {
-      const errorText = await response.text()
-      console.error("💥 Courses API error:", response.status, response.statusText, errorText)
-      return NextResponse.json({ error: "Failed to fetch courses from Strapi" }, { status: response.status })
+    const raw = await response.text()
+
+    let data: any
+    try {
+      data = JSON.parse(raw)
+    } catch (err) {
+      console.error("❌ Could not parse JSON from Strapi:", raw)
+      return NextResponse.json({ error: "Strapi returned invalid JSON" }, { status: 500 })
     }
 
-    console.log("📊 Raw Courses API Response received")
-    console.log("📊 Courses count:", data.data?.length || 0)
+    if (!response.ok) {
+      console.error("💥 Courses API error:", response.status, response.statusText, raw)
+      return NextResponse.json({ error: "Failed to fetch courses from Strapi", details: raw }, { status: response.status })
+    }
+
+    console.log("📦 Raw Courses API Response received")
+    console.log("📦 Courses count:", data.data?.length || 0)
 
     // 🔍 SUCHE NACH DEM COURSE MIT DER GEGEBENEN ID
     let foundCourse = null
