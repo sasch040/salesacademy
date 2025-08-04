@@ -39,32 +39,75 @@ export async function POST(request: NextRequest) {
 
       clearTimeout(timeoutId)
 
-      const data = await response.json()
-      if (!response.ok) {
-        console.error("❌ Strapi Registration Error:", response.status, data)
+       let data: any = null;
+      try {
+        data = await response.json();
+      } catch {
+        data = null;
+      }
 
-        if (response.status === 400 && data.error?.message?.includes("Email or Username are already taken")) {
-          return NextResponse.json({ error: "Diese E-Mail-Adresse ist bereits registriert" }, { status: 400 })
+      if (!response.ok) {
+        console.error("❌ Strapi Registration Error:", response.status, data);
+
+        const msg = data?.error?.message || data?.message || "Registrierung fehlgeschlagen";
+        const details = data?.error?.details || data?.data || null;
+
+        const alreadyTaken =
+          typeof msg === "string" &&
+          (msg.includes("already taken") ||
+           msg.toLowerCase().includes("email") && msg.toLowerCase().includes("unique"));
+
+        if (response.status === 400 && alreadyTaken) {
+          return NextResponse.json({ error: "Diese E-Mail-Adresse ist bereits registriert" }, { status: 400 });
         }
 
-        throw new Error(`Strapi returned ${response.status}: ${response.statusText}`)
+        return NextResponse.json({ error: msg, details }, { status: response.status || 500 });
       }
-      console.log("✅ Strapi registration successful")
 
-      if (data && data.user && data.jwt) {
-        console.log("👤 User registered successfully:", data.user.email)
+      console.log("✅ Strapi registration successful");
 
-        return NextResponse.json({
-          success: true,
-          message: "Registrierung erfolgreich",
-          user: {
-            email: data.user.email,
-            role: data.user.role || "student",
+      if (data?.user && !data?.jwt) {
+        console.log("ℹ️ Email confirmation flow detected for:", data.user.email);
+        return NextResponse.json(
+          {
+            success: true,
+            requiresEmailConfirmation: true,
+            message: "Registrierung erfolgreich. Bitte bestätige deine E‑Mail, um dich anzumelden.",
+            user: {
+              email: data.user.email,
+              confirmed: Boolean(data.user.confirmed),
+              id: data.user.id,
+            },
           },
-        })
-      } else {
-        throw new Error("Invalid response from Strapi")
+          { status: 201 }
+        );
       }
+
+      if (data?.user && data?.jwt) {
+        console.log("👤 User registered (no email confirmation required):", data.user.email);
+        return NextResponse.json(
+          {
+            success: true,
+            message: "Registrierung erfolgreich",
+            user: {
+              email: data.user.email,
+              role: data.user.role || "student",
+            },
+            jwt: data.jwt,
+          },
+          { status: 201 }
+        );
+      }
+
+      console.warn("⚠️ Unerwartete Strapi-Antwortstruktur:", data);
+      return NextResponse.json(
+        {
+          success: true,
+          message: "Registrierung abgeschlossen. Prüfe bitte deine E‑Mail zur Bestätigung.",
+          raw: data,
+        },
+        { status: 201 }
+      );
     } catch (strapiError: unknown) {
       const err = strapiError as Error
       console.error("🚨 Strapi registration failed:", err.message)
