@@ -2,27 +2,36 @@
 
 import { useState } from 'react';
 import { useAuth } from '@/hooks/useAuth';
-import { useRouter } from 'next/navigation';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 
 export default function RegisterForm() {
   const { register } = useAuth();
-  const router = useRouter();
 
   const [username, setUsername] = useState('');
-  const [email, setEmail] = useState('');
+  const [email, setEmail]     = useState('');
   const [password, setPassword] = useState('');
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError]     = useState<string | null>(null);
+  const [success, setSuccess] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
+    setSuccess(null);
+    setLoading(true);
+
     try {
-      await register(username, email, password);
-      router.push('/auth/confirmed'); // oder '/login'
+      const result = await register(username, email, password);
+      if (result?.requiresEmailConfirmation) {
+        setSuccess('✅ Registrierung erfolgreich. Bitte bestätige deine E‑Mail über den Link, den wir dir geschickt haben.');
+      } else {
+        setSuccess('✅ Registrierung erfolgreich.');
+      }
     } catch (err) {
-      setError('Registrierung fehlgeschlagen. Vielleicht existiert die E-Mail schon.');
+      setError('Registrierung fehlgeschlagen. Vielleicht existiert die E‑Mail schon.');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -37,7 +46,7 @@ export default function RegisterForm() {
       />
       <Input
         type="email"
-        placeholder="E-Mail"
+        placeholder="E‑Mail"
         value={email}
         onChange={(e) => setEmail(e.target.value)}
         required
@@ -49,9 +58,12 @@ export default function RegisterForm() {
         onChange={(e) => setPassword(e.target.value)}
         required
       />
+
+      {success && <p className="text-green-600 text-sm">{success}</p>}
       {error && <p className="text-red-500 text-sm">{error}</p>}
-      <Button type="submit" className="w-full">
-        Registrieren
+
+      <Button type="submit" className="w-full" disabled={loading}>
+        {loading ? 'Wird gesendet…' : 'Registrieren'}
       </Button>
     </form>
   );

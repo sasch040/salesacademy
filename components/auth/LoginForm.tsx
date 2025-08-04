@@ -17,12 +17,6 @@ export default function LoginForm() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
-    try {
-      await login(identifier, password);
-      router.push('/dashboard');
-    } catch (err) {
-      setError('Login fehlgeschlagen. Bitte überprüfe deine Eingaben.');
-    }
   };
 
   return (
