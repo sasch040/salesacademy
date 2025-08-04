@@ -11,7 +11,6 @@ const nextConfig = {
       {
         protocol: "https",
         hostname: "strapi-speicher.s3.eu-central-1.amazonaws.com",
-        port: "",
         pathname: "/**",
       },
     ],

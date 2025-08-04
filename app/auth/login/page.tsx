@@ -81,16 +81,17 @@ export default function LoginPage() {
         console.error("❌ Login failed:", data.error)
         setError(data.error || "Login failed")
       }
-    } catch (error) {
-      console.error("💥 Login error:", error)
+    } catch (error: unknown) {
+      const err = error as Error
+      console.error("💥 Login error:", err)
 
       // Benutzerfreundliche Fehlermeldung
-      if (error.message.includes("fetch")) {
+      if (err.message.includes("fetch")) {
         setError("Network error. Please check your internet connection and try again.")
-      } else if (error.message.includes("JSON")) {
+      } else if (err.message.includes("JSON")) {
         setError("Server error. Please try again later.")
       } else {
-        setError(error.message || "An unexpected error occurred. Please try again.")
+        setError(err.message || "An unexpected error occurred. Please try again.")
       }
     } finally {
       setIsLoading(false)

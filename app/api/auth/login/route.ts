@@ -37,7 +37,9 @@ export async function POST(request: NextRequest) {
         }),
         signal: controller.signal,
       })
-      const { jwt: strapiJwt, user } = await response.json()
+      const data = await response.json()
+      const strapiJwt = data.jwt
+      const user = data.user
 
       clearTimeout(timeoutId)
 
@@ -52,7 +54,6 @@ export async function POST(request: NextRequest) {
         console.error("❌ Response body:", textResponse.substring(0, 500))
         throw new Error(`Strapi returned non-JSON response: ${response.status}`)
       }
-      const data = await response.json()
       console.log("✅ Strapi response received")
       if (!response.ok) {
         console.error("❌ Strapi API Error:", response.status, data)
@@ -157,44 +158,6 @@ export async function POST(request: NextRequest) {
         console.error("🔌 Connection refused - is Strapi running on", STRAPI_URL, "?")
       } else if (err.message.includes("fetch")) {
         console.error("🌐 Network error - check Strapi connection")
-      }
-
-      // Fallback zu hardcoded Liste
-      console.log("🔄 Falling back to hardcoded authorization list...")
-
-      const FALLBACK_EMAILS = [
-        "admin@example.com",
-        "student1@example.com",
-        "student2@example.com",
-        "teacher@example.com",
-        "demo@elearning.com",
-        "test@test.com",
-        email.toLowerCase(), // Aktuelle E-Mail auch erlauben für Testing
-      ]
-
-      const isAuthorized = FALLBACK_EMAILS.includes(email.toLowerCase())
-
-      if (isAuthorized && password.length >= 4) {
-        // Einfache Passwort-Validierung für Fallback
-        console.log("✅ User authorized via fallback list")
-        const token = jwt.sign({ email, role: "student" }, JWT_SECRET, { expiresIn: "24h" })
-        console.log("✅ JWT Token generated (fallback)")
-        return NextResponse.json({
-          success: true,
-          message: "Login successful (fallback mode - Strapi unavailable)",
-          user: { email, role: "student" },
-          warning: "Strapi connection failed, using fallback authentication",
-          token,
-        })
-      } else {
-        return NextResponse.json(
-          {
-            error: "Login failed. Please check your credentials.",
-            details: `Strapi unavailable and credentials not valid for fallback mode.`,
-            strapiError: err.message,
-          },
-          { status: 401 },
-        )
       }
     }
   } catch (error: unknown) {

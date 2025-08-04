@@ -31,26 +31,28 @@ export async function POST(request: NextRequest) {
         valid: true,
         message: "Token ist gültig",
       })
-    } catch (error) {
-      console.error("🚨 Token validation failed:", error.message)
+    } catch (error: unknown) {
+      const err = error as Error
+      console.error("🚨 Token validation failed:", err.message)
 
       return NextResponse.json(
         {
           error: "Token-Validierung fehlgeschlagen",
           valid: false,
-          details: error.message,
+          details: err.message,
         },
         { status: 400 },
       )
     }
   } catch (error) {
-    console.error("💥 Validate Token API critical error:", error)
+    const e = error as Error
+    console.error("💥 Validate Token API critical error:", e)
 
     return NextResponse.json(
       {
         error: "Interner Serverfehler bei der Token-Validierung",
         valid: false,
-        details: error.message || "Unbekannter Fehler",
+        details: e.message || "Unbekannter Fehler",
         timestamp: new Date().toISOString(),
       },
       { status: 500 },

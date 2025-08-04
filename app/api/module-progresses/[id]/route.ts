@@ -59,12 +59,13 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
       action: "updated",
       data: updatedData.data,
     })
-  } catch (error) {
-    console.error("💥 Module progress PUT error:", error)
+  } catch (error: unknown) {
+    const err = error as Error
+    console.error("💥 Module progress PUT error:", err)
     return NextResponse.json(
       {
         error: "Failed to update module progress",
-        details: error.message,
+        details: err.message,
       },
       { status: 500 },
     )
@@ -114,11 +115,12 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
 
     return NextResponse.json(data)
   } catch (error) {
-    console.error("💥 Module progress GET error:", error)
+    const e = error as Error
+    console.error("💥 Module progress GET error:", e)
     return NextResponse.json(
       {
         error: "Failed to fetch module progress",
-        details: error.message,
+        details: e.message,
       },
       { status: 500 },
     )
@@ -173,11 +175,12 @@ export async function DELETE(request: NextRequest, { params }: { params: { id: s
       data: deletedData.data,
     })
   } catch (error) {
-    console.error("💥 Module progress DELETE error:", error)
+    const err = error as Error
+    console.error("💥 Module progress DELETE error:", err)
     return NextResponse.json(
       {
         error: "Failed to delete module progress",
-        details: error.message,
+        details: err.message,
       },
       { status: 500 },
     )

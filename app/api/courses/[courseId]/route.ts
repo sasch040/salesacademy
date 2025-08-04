@@ -189,14 +189,14 @@ export async function GET(request: NextRequest, { params }: { params: { courseId
 
     console.log("📡 Response status:", response.status)
     console.log("📡 Response OK:", response.ok)
-
+    
+    const data = await response.json()
     if (!response.ok) {
       const errorText = await response.text()
       console.error("💥 Courses API error:", response.status, response.statusText, errorText)
       return NextResponse.json({ error: "Failed to fetch courses from Strapi" }, { status: response.status })
     }
 
-    const data = await response.json()
     console.log("📊 Raw Courses API Response received")
     console.log("📊 Courses count:", data.data?.length || 0)
 
