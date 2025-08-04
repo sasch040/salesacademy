@@ -7,7 +7,7 @@ import { useRouter } from 'next/navigation'
 interface AuthContextType {
   user: User | null
   login: (identifier: string, password: string) => Promise<void>
-  register: (username: string, email: string, password: string) => Promise<void>
+  register: (username: string, email: string, password: string) => Promise<{ requiresEmailConfirmation: boolean }>
   logout: () => Promise<void>
 }
 export const AuthContext = createContext<AuthContextType | undefined>(undefined)
@@ -58,7 +58,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
     const data = await res.json()
     setUser(data.user)
-    router.push('/dashboard') // Zielseite nach Login
+    setTimeout(() => {
+      router.replace('/dashboard');
+    }, 0);
   }
 
   // 📝 Registrierung – direkter Aufruf an Strapi (wenn Cookie nicht gebraucht wird)
@@ -84,8 +86,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     }
 
     const data = await res.json()
-    setUser(data.user)
-    router.push('/dashboard') // Optionale Weiterleitung nach Registrierung
+    return { requiresEmailConfirmation: true }; // Rückgabe für die UI z. B.:
   }
 
   // 🚪 Logout – löscht Cookie via eigene API
