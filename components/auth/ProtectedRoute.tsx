@@ -1,25 +1,21 @@
 "use client"
 
 import type React from "react"
-
 import { useAuth } from "@/contexts/AuthContext"
 import { useRouter } from "next/navigation"
-import { useEffect, useState } from "react"
+import { useEffect } from "react"
 
 export default function ProtectedRoute({ children }: { children: React.ReactNode }) {
-  const { user } = useAuth()
+  const { user, loading } = useAuth()
   const router = useRouter()
-  const [checking, setChecking] = useState(true)
 
   useEffect(() => {
-    if (!user) {
+    if (!loading && !user) {
       router.push("/auth/login")
-    } else {
-      setChecking(false)
     }
-  }, [user, router])
+  }, [user, loading, router])
 
-  if (checking) return null // oder Spinner anzeigen
+  if (loading) return null // Optional: Spinner oder Ladeanzeige
 
   return <>{children}</>
 }
