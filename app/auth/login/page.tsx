@@ -9,78 +9,92 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Alert, AlertDescription } from "@/components/ui/alert"
-import { Loader2 } from "lucide-react"
 import Link from "next/link"
 import Image from "next/image"
 
 export default function LoginPage() {
-  const [identifier, setIdentifier] = useState("")
+  const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState("")
+  const [warning, setWarning] = useState("")
   const router = useRouter()
 
-  // Prüfen ob bereits eingeloggt
+  // Listen für Auth-Events von anderen Tabs
   useEffect(() => {
-    const checkAuth = () => {
-      const user = localStorage.getItem("user")
-      const jwt = localStorage.getItem("jwt")
-
-      if (user && jwt) {
-        router.push("/dashboard")
-      }
+    const handleAuthSuccess = () => {
+      router.push("/dashboard")
     }
 
-    checkAuth()
-
-    // Listen für Storage-Events (für Tab-Synchronisation)
-    const handleStorageChange = (e: StorageEvent) => {
-      if (e.key === "user" && e.newValue) {
-        router.push("/dashboard")
-      }
-    }
-
-    window.addEventListener("storage", handleStorageChange)
-    return () => window.removeEventListener("storage", handleStorageChange)
+    window.addEventListener("auth-success", handleAuthSuccess)
+    return () => window.removeEventListener("auth-success", handleAuthSuccess)
   }, [router])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsLoading(true)
     setError("")
+    setWarning("")
 
     try {
+      console.log("🔄 Attempting login...")
+
       const response = await fetch("/api/auth/login", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ identifier, password }),
+        credentials: "include", // wichtig für Cookie-Auth
+        body: JSON.stringify({ email, password }),
       })
 
+      console.log("📊 Response status:", response.status)
+      console.log("📊 Response headers:", Object.fromEntries(response.headers.entries()))
+
+      // Check if response is JSON
+      const contentType = response.headers.get("content-type")
+      if (!contentType || !contentType.includes("application/json")) {
+        console.error("❌ API returned non-JSON response:", contentType)
+        const textResponse = await response.text()
+        console.error("❌ Response body:", textResponse.substring(0, 500))
+        throw new Error("Server returned an invalid response. Please try again later.")
+      }
+
       const data = await response.json()
+      console.log("📦 Response data:", data)
 
       if (response.ok && data.user) {
-        // Session setzen
-        localStorage.setItem("user", JSON.stringify(data.user))
-        localStorage.setItem("jwt", data.jwt)
+        console.log("✅ Login successful")
 
-        // Event für andere Tabs senden
-        window.dispatchEvent(
-          new StorageEvent("storage", {
-            key: "user",
-            newValue: JSON.stringify(data.user),
-          }),
-        )
+        // Benachrichtige andere Tabs über erfolgreiche Anmeldung
+        window.dispatchEvent(new CustomEvent("auth-success"))
 
-        // Weiterleitung
-        router.push("/dashboard")
+        // Warning anzeigen falls Fallback-Modus
+        if (data.warning) {
+          setWarning(data.warning)
+          // Kurz warten damit User die Warnung sehen kann
+          setTimeout(() => {
+            router.push("/dashboard")
+          }, 2000)
+        } else {
+          router.push("/dashboard")
+        }
       } else {
-        setError(data.error || "Anmeldung fehlgeschlagen")
+        console.error("❌ Login failed:", data.error)
+        setError(data.error || "Login failed")
       }
-    } catch (error) {
-      console.error("Login error:", error)
-      setError("Anmeldung fehlgeschlagen")
+    } catch (error: unknown) {
+      const err = error as Error
+      console.error("💥 Login error:", err)
+
+      // Benutzerfreundliche Fehlermeldung
+      if (err.message.includes("fetch")) {
+        setError("Network error. Please check your internet connection and try again.")
+      } else if (err.message.includes("JSON")) {
+        setError("Server error. Please try again later.")
+      } else {
+        setError(err.message || "An unexpected error occurred. Please try again.")
+      }
     } finally {
       setIsLoading(false)
     }
@@ -106,21 +120,21 @@ export default function LoginPage() {
           <CardHeader className="text-center pb-8">
             <CardTitle className="text-3xl font-bold text-slate-800">🔐 Anmelden</CardTitle>
             <CardDescription className="text-slate-600 font-light">
-              Melden Sie sich bei Ihrem Sales Academy Konto an
+              Geben Sie Ihre Anmeldedaten ein, um auf die Plattform zuzugreifen
             </CardDescription>
           </CardHeader>
           <CardContent className="px-8 pb-8">
             <form onSubmit={handleSubmit} className="space-y-6">
               <div className="space-y-3">
-                <Label htmlFor="identifier" className="text-slate-700 font-medium">
+                <Label htmlFor="email" className="text-slate-700 font-medium">
                   E-Mail-Adresse
                 </Label>
                 <Input
-                  id="identifier"
+                  id="email"
                   type="email"
                   placeholder="ihre.email@example.com"
-                  value={identifier}
-                  onChange={(e) => setIdentifier(e.target.value)}
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
                   required
                   disabled={isLoading}
                   className="h-12 px-4 rounded-xl border-slate-200 focus:border-slate-400 focus:ring-slate-400"
@@ -149,30 +163,22 @@ export default function LoginPage() {
                 </Alert>
               )}
 
+              {warning && (
+                <Alert className="rounded-xl border-orange-200 bg-orange-50">
+                  <AlertDescription className="text-orange-800">{warning}</AlertDescription>
+                </Alert>
+              )}
+
               <Button
                 type="submit"
-                className="w-full h-12 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white rounded-xl shadow-lg hover:shadow-xl transition-all duration-200"
+                className="w-full h-12 bg-gradient-to-r from-slate-800 to-slate-700 hover:from-slate-700 hover:to-slate-600 text-white rounded-xl shadow-lg hover:shadow-xl transition-all duration-200"
                 disabled={isLoading}
               >
-                {isLoading ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Wird angemeldet...
-                  </>
-                ) : (
-                  "🚀 Anmelden"
-                )}
+                {isLoading ? "Wird angemeldet..." : "🚀 Anmelden"}
               </Button>
             </form>
 
             <div className="mt-8 text-center space-y-4">
-              <Link
-                href="/auth/forgot-password"
-                className="text-sm text-slate-600 hover:text-slate-800 font-light transition-colors"
-              >
-                Passwort vergessen?
-              </Link>
-
               <div className="relative">
                 <div className="absolute inset-0 flex items-center">
                   <div className="w-full border-t border-slate-200"></div>

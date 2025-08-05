@@ -47,6 +47,7 @@ export default function RegisterPage() {
         headers: {
           "Content-Type": "application/json",
         },
+        credentials: "include",
         body: JSON.stringify({ email, password }),
       })
 
@@ -58,9 +59,7 @@ export default function RegisterPage() {
           setRegisteredEmail(email)
           setShowConfirmationModal(true)
         } else if (data.user && data.jwt) {
-          // Direkter Login ohne E-Mail-Bestätigung
-          localStorage.setItem("user", JSON.stringify(data.user))
-          localStorage.setItem("jwt", data.jwt)
+          // Direkter Login ohne E-Mail-Bestätigung (Cookie wird automatisch gesetzt)
           router.push("/dashboard")
         }
       } else {

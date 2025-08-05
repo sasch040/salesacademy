@@ -19,25 +19,35 @@ export function EmailConfirmationModal({ isOpen, onClose, email }: EmailConfirma
             <Mail className="h-8 w-8 text-blue-600" />
           </div>
           <DialogTitle className="text-xl font-semibold">E-Mail-Bestätigung erforderlich</DialogTitle>
-          <DialogDescription className="text-center space-y-2">
-            <p>Wir haben eine Bestätigungs-E-Mail an</p>
-            <p className="font-semibold text-slate-900">{email}</p>
-            <p>gesendet. Bitte klicken Sie auf den Link in der E-Mail, um Ihr Konto zu aktivieren.</p>
+          <DialogDescription className="text-center">
+            Wir haben eine Bestätigungs-E-Mail an
+            <br />
+            <span className="font-medium text-slate-900">{email}</span>
+            <br />
+            gesendet.
           </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-4 pt-4">
-          <div className="rounded-lg bg-amber-50 border border-amber-200 p-4">
+        <div className="space-y-4">
+          <div className="rounded-lg bg-slate-50 p-4">
             <div className="flex items-start space-x-3">
-              <CheckCircle className="h-5 w-5 text-amber-600 mt-0.5" />
-              <div className="text-sm text-amber-800">
-                <p className="font-medium">Wichtiger Hinweis:</p>
-                <p>Überprüfen Sie auch Ihren Spam-Ordner, falls Sie keine E-Mail erhalten haben.</p>
+              <CheckCircle className="h-5 w-5 text-green-600 mt-0.5 flex-shrink-0" />
+              <div className="text-sm text-slate-700">
+                <p className="font-medium mb-1">Nächste Schritte:</p>
+                <ol className="list-decimal list-inside space-y-1 text-xs">
+                  <li>Überprüfen Sie Ihr E-Mail-Postfach</li>
+                  <li>Klicken Sie auf den Bestätigungslink</li>
+                  <li>Melden Sie sich anschließend an</li>
+                </ol>
               </div>
             </div>
           </div>
 
-          <Button onClick={onClose} className="w-full bg-transparent" variant="outline">
+          <div className="text-xs text-slate-500 text-center">
+            Keine E-Mail erhalten? Überprüfen Sie auch Ihren Spam-Ordner.
+          </div>
+
+          <Button onClick={onClose} className="w-full">
             Verstanden
           </Button>
         </div>
