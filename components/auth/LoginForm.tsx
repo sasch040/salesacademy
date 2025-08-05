@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { useAuth } from '@/hooks/useAuth';
+import { useAuth } from '@/contexts/AuthContext';
 import { useRouter } from 'next/navigation';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -17,6 +17,13 @@ export default function LoginForm() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
+
+    try {
+      await login(identifier, password);
+      // ✅ Weiterleitung erfolgt automatisch im Context
+    } catch (err: any) {
+      setError(err.message || "Ein Fehler ist aufgetreten");
+    }
   };
 
   return (
