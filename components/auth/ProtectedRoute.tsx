@@ -1,23 +1,15 @@
-'use client';
+"use client"
 
-import { useAuth } from '@/hooks/useAuth';
-import { useRouter } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import type React from "react"
+import { Route, Redirect } from "react-router-dom"
+import { useAuth } from "../../hooks/useAuth"
 
-export default function ProtectedRoute({ children }: { children: React.ReactNode }) {
-  const { user } = useAuth();
-  const router = useRouter();
-  const [checking, setChecking] = useState(true);
+const ProtectedRoute: React.FC<any> = ({ component: Component, ...rest }) => {
+  const { isAuthenticated } = useAuth()
 
-  useEffect(() => {
-    if (!user) {
-      router.push('/auth/login');
-    } else {
-      setChecking(false);
-    }
-  }, [user, router]);
-
-  if (checking) return null; // oder Spinner anzeigen
-
-  return <>{children}</>;
+  return (
+    <Route {...rest} render={(props) => (isAuthenticated ? <Component {...props} /> : <Redirect to="/auth/login" />)} />
+  )
 }
+
+export default ProtectedRoute

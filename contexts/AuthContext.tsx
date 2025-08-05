@@ -1,8 +1,9 @@
-'use client'
+"use client"
 
-import React, { createContext, useState, useContext, useEffect } from 'react'
-import { User } from '@/lib/types'
-import { useRouter } from 'next/navigation'
+import type React from "react"
+import { createContext, useState, useContext, useEffect } from "react"
+import type { User } from "@/lib/types"
+import { useRouter } from "next/navigation"
 
 interface AuthContextType {
   user: User | null
@@ -18,11 +19,11 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   // ⏳ Lädt User über Cookie bei App-Start
   useEffect(() => {
-    fetch('/api/auth/me', {
-      method: 'GET',
-      credentials: 'include',
+    fetch("/api/auth/me", {
+      method: "GET",
+      credentials: "include",
     })
-      .then((res) => res.ok ? res.json() : null)
+      .then((res) => (res.ok ? res.json() : null))
       .then((data) => {
         if (data?.user) {
           setUser(data.user)
@@ -35,18 +36,18 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   // 🔐 Login – ruft interne API, setzt HttpOnly-Cookie
   const login = async (identifier: string, password: string) => {
-    const res = await fetch('/api/auth/login', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      credentials: 'include',
+    const res = await fetch("/api/auth/login", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      credentials: "include",
       body: JSON.stringify({ identifier, password }),
     })
 
-    const contentType = res.headers.get('content-type')
+    const contentType = res.headers.get("content-type")
 
     if (!res.ok) {
-      let errorMessage = 'Login fehlgeschlagen'
-      if (contentType?.includes('application/json')) {
+      let errorMessage = "Login fehlgeschlagen"
+      if (contentType?.includes("application/json")) {
         const errData = await res.json()
         errorMessage = errData?.error || errorMessage
       } else {
@@ -59,23 +60,23 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     const data = await res.json()
     setUser(data.user)
     setTimeout(() => {
-      router.replace('/dashboard');
-    }, 0);
+      router.replace("/dashboard")
+    }, 0)
   }
 
   // 📝 Registrierung – direkter Aufruf an Strapi (wenn Cookie nicht gebraucht wird)
   const register = async (username: string, email: string, password: string) => {
     const res = await fetch(`${process.env.NEXT_PUBLIC_STRAPI_URL}/api/auth/local/register`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ username, email, password }),
     })
 
-    const contentType = res.headers.get('content-type')
+    const contentType = res.headers.get("content-type")
 
     if (!res.ok) {
-      let errorMessage = 'Registrierung fehlgeschlagen'
-      if (contentType?.includes('application/json')) {
+      let errorMessage = "Registrierung fehlgeschlagen"
+      if (contentType?.includes("application/json")) {
         const errData = await res.json()
         errorMessage = errData?.error?.message || errorMessage
       } else {
@@ -86,30 +87,26 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     }
 
     const data = await res.json()
-    return { requiresEmailConfirmation: true }; // Rückgabe für die UI z. B.:
+    return { requiresEmailConfirmation: true } // Rückgabe für die UI z. B.:
   }
 
   // 🚪 Logout – löscht Cookie via eigene API
   const logout = async () => {
-    await fetch('/api/auth/logout', {
-      method: 'POST',
-      credentials: 'include',
+    await fetch("/api/auth/logout", {
+      method: "POST",
+      credentials: "include",
     })
     setUser(null)
-    router.push('/auth/login')
+    router.push("/auth/login") // Updated line
   }
 
-  return (
-    <AuthContext.Provider value={{ user, login, register, logout }}>
-      {children}
-    </AuthContext.Provider>
-  )
+  return <AuthContext.Provider value={{ user, login, register, logout }}>{children}</AuthContext.Provider>
 }
 
 export function useAuth(): AuthContextType {
   const context = useContext(AuthContext)
   if (!context) {
-    throw new Error('useAuth must be used within an AuthProvider')
+    throw new Error("useAuth must be used within an AuthProvider")
   }
   return context
 }
