@@ -98,7 +98,7 @@ export default function Dashboard() {
 
   const handleLogout = () => {
     localStorage.removeItem("userEmail")
-    router.push("/login")
+    router.push("/auth/login")
   }
 
   // Loading State

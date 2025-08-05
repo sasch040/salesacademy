@@ -87,7 +87,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     }
 
     const data = await res.json()
-    return { requiresEmailConfirmation: true } // Rückgabe für die UI z. B.:
+    return { requiresEmailConfirmation: true } // Rückgabe für die UI z. B.:
   }
 
   // 🚪 Logout – löscht Cookie via eigene API
@@ -97,7 +97,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       credentials: "include",
     })
     setUser(null)
-    router.push("/auth/login") // Updated line
+    router.push("/auth/login")
   }
 
   return <AuthContext.Provider value={{ user, login, register, logout }}>{children}</AuthContext.Provider>
