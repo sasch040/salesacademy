@@ -20,6 +20,7 @@ import {
 } from "lucide-react"
 import Link from "next/link"
 import Image from "next/image"
+import { useAuth } from "@/contexts/AuthContext"
 
 interface Product {
   id: number
@@ -36,23 +37,13 @@ export default function Dashboard() {
   const [products, setProducts] = useState<Product[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [userEmail, setUserEmail] = useState("")
   const router = useRouter()
   const { progress } = useProgress()
+  const { user, logout } = useAuth()
 
   const completedCount = progress.filter((p) => p.completed).length
   const totalCount = progress.length
   const percent = totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : 0
-
-  // User authentication
-  useEffect(() => {
-    const email = localStorage.getItem("userEmail")
-    if (!email) {
-      router.push("/auth/login")
-    } else {
-      setUserEmail(email)
-    }
-  }, [router])
 
   // 1. PRODUCTS LOADING - useEffect holt Daten von der API
   useEffect(() => {
@@ -96,9 +87,14 @@ export default function Dashboard() {
     loadProducts()
   }, [])
 
-  const handleLogout = () => {
-    localStorage.removeItem("userEmail")
-    router.push("/auth/login")
+  const handleLogout = async () => {
+    try {
+      await logout()
+    } catch (error) {
+      console.error("Logout error:", error)
+      // Fallback: redirect manually if logout fails
+      router.push("/auth/login")
+    }
   }
 
   // Loading State
@@ -157,7 +153,7 @@ export default function Dashboard() {
             <div className="flex items-center gap-4">
               <div className="text-right">
                 <p className="text-sm font-medium text-slate-800">Willkommen zurück!</p>
-                <p className="text-xs text-slate-600">{userEmail}</p>
+                <p className="text-xs text-slate-600">{user?.email || user?.username || "Benutzer"}</p>
               </div>
               <Button
                 onClick={handleLogout}
