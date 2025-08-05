@@ -1,84 +1,115 @@
-"use client"
+'use client'
 
-import type React from "react"
-
-import { useState, useEffect } from "react"
-import { useRouter, useSearchParams } from "next/navigation"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Alert, AlertDescription } from "@/components/ui/alert"
-import { CheckCircle, Loader2 } from "lucide-react"
-import Link from "next/link"
-import Image from "next/image"
+import type React from 'react'
+import { useState, useEffect } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Alert, AlertDescription } from '@/components/ui/alert'
+import { CheckCircle, Loader2 } from 'lucide-react'
+import Link from 'next/link'
+import Image from 'next/image'
 
 export default function EmailConfirmedPage() {
-  const [identifier, setIdentifier] = useState("")
-  const [password, setPassword] = useState("")
+  const [identifier, setIdentifier] = useState('')
+  const [password, setPassword] = useState('')
   const [isLoading, setIsLoading] = useState(false)
-  const [error, setError] = useState("")
-  const [confirmationStatus, setConfirmationStatus] = useState<"loading" | "success" | "error">("loading")
+  const [error, setError] = useState('')
+  const [confirmationStatus, setConfirmationStatus] = useState<'loading' | 'success' | 'error'>('loading')
   const router = useRouter()
   const searchParams = useSearchParams()
 
   useEffect(() => {
-    // Simuliere E-Mail-Bestätigung basierend auf URL-Parametern
-    const token = searchParams.get("token")
-    const email = searchParams.get("email")
+    const token = searchParams.get('token')
 
-    if (token && email) {
-      // Hier würde normalerweise die Bestätigung an Strapi gesendet
-      setTimeout(() => {
-        setConfirmationStatus("success")
-        setIdentifier(email)
-      }, 1500)
-    } else {
-      setConfirmationStatus("success") // Fallback für direkte Navigation
+    if (!token) {
+      setConfirmationStatus('error')
+      return
     }
+
+    const confirmEmail = async () => {
+      try {
+        const res = await fetch(
+          `${process.env.NEXT_PUBLIC_STRAPI_URL}/api/auth/email-confirmation?confirmation=${token}`,
+          { method: 'GET' }
+        )
+
+        if (res.ok) {
+          const data = await res.json()
+          setIdentifier(data?.user?.email || '')
+          setConfirmationStatus('success')
+        } else {
+          setConfirmationStatus('error')
+        }
+      } catch (err) {
+        console.error('Fehler bei der E-Mail-Bestätigung:', err)
+        setConfirmationStatus('error')
+      }
+    }
+
+    confirmEmail()
   }, [searchParams])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsLoading(true)
-    setError("")
+    setError('')
 
     try {
-      const response = await fetch("/api/auth/login", {
-        method: "POST",
+      const response = await fetch('/api/auth/login', {
+        method: 'POST',
         headers: {
-          "Content-Type": "application/json",
+          'Content-Type': 'application/json',
         },
-        credentials: "include",
+        credentials: 'include',
         body: JSON.stringify({ identifier, password }),
       })
 
       const data = await response.json()
 
       if (response.ok && data.user) {
-        // Cookie-basierte Authentifizierung - kein localStorage
-        router.push("/dashboard")
-
-        // Benachrichtige andere Tabs über erfolgreiche Anmeldung
-        window.dispatchEvent(new CustomEvent("auth-success"))
+        router.push('/dashboard')
+        window.dispatchEvent(new CustomEvent('auth-success'))
       } else {
-        setError(data.error || "Anmeldung fehlgeschlagen")
+        setError(data.error || 'Anmeldung fehlgeschlagen')
       }
     } catch (error) {
-      console.error("Login error:", error)
-      setError("Anmeldung fehlgeschlagen")
+      console.error('Login error:', error)
+      setError('Anmeldung fehlgeschlagen')
     } finally {
       setIsLoading(false)
     }
   }
 
-  if (confirmationStatus === "loading") {
+  if (confirmationStatus === 'loading') {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 flex items-center justify-center px-6">
         <Card className="w-full max-w-md bg-white/80 backdrop-blur-sm border-0 shadow-2xl">
           <CardContent className="flex flex-col items-center justify-center p-8">
             <Loader2 className="h-8 w-8 animate-spin text-blue-600 mb-4" />
             <p className="text-slate-600">E-Mail-Bestätigung wird verarbeitet...</p>
+          </CardContent>
+        </Card>
+      </div>
+    )
+  }
+
+  if (confirmationStatus === 'error') {
+    return (
+      <div className="min-h-screen flex items-center justify-center text-center px-4">
+        <Card className="w-full max-w-md shadow-2xl p-6">
+          <CardHeader>
+            <CardTitle className="text-red-600">❌ Bestätigung fehlgeschlagen</CardTitle>
+            <CardDescription className="text-slate-600">
+              Der Bestätigungslink ist ungültig oder abgelaufen.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="text-center space-y-4">
+            <Link href="/auth/login">
+              <Button variant="outline">Zur Anmeldung</Button>
+            </Link>
           </CardContent>
         </Card>
       </div>
@@ -108,7 +139,7 @@ export default function EmailConfirmedPage() {
             </div>
             <CardTitle className="text-2xl font-bold text-slate-800">✅ E-Mail bestätigt!</CardTitle>
             <CardDescription className="text-slate-600 font-light">
-              Ihre E-Mail-Adresse wurde erfolgreich bestätigt. Sie können sich jetzt anmelden.
+              Deine E-Mail-Adresse wurde erfolgreich bestätigt. Du kannst dich jetzt einloggen.
             </CardDescription>
           </CardHeader>
 
@@ -163,7 +194,7 @@ export default function EmailConfirmedPage() {
                     Wird angemeldet...
                   </>
                 ) : (
-                  "🚀 Jetzt anmelden"
+                  '🚀 Jetzt anmelden'
                 )}
               </Button>
             </form>
@@ -191,7 +222,10 @@ export default function EmailConfirmedPage() {
                 </Button>
               </Link>
 
-              <Link href="/" className="text-sm text-slate-600 hover:text-slate-800 font-light transition-colors block">
+              <Link
+                href="/"
+                className="text-sm text-slate-600 hover:text-slate-800 font-light transition-colors block"
+              >
                 ← Zurück zur Startseite
               </Link>
             </div>
