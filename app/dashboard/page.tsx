@@ -128,7 +128,7 @@ export default function Dashboard() {
   }
 
   return (
-    <ProtectedRoute>
+    
       <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100">
         {/* Header */}
         <header className="backdrop-blur-sm bg-white/80 border-b border-slate-200/60 sticky top-0 z-50">
@@ -373,6 +373,5 @@ export default function Dashboard() {
           </div>
         </main>
       </div>
-    </ProtectedRoute>
   )
 }
