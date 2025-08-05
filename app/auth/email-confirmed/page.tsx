@@ -2,49 +2,40 @@
 
 import type React from "react"
 
-import { useState, useEffect } from "react"
-import { useRouter } from "next/navigation"
+import { useEffect, useState } from "react"
+import { useRouter, useSearchParams } from "next/navigation"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Alert, AlertDescription } from "@/components/ui/alert"
-import { Loader2 } from "lucide-react"
+import { CheckCircle, Loader2 } from "lucide-react"
 import Link from "next/link"
 import Image from "next/image"
 
-export default function LoginPage() {
-  const [identifier, setIdentifier] = useState("")
+export default function EmailConfirmedPage() {
+  const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState("")
+  const [isConfirmed, setIsConfirmed] = useState(false)
   const router = useRouter()
+  const searchParams = useSearchParams()
 
-  // Prüfen ob bereits eingeloggt
   useEffect(() => {
-    const checkAuth = () => {
-      const user = localStorage.getItem("user")
-      const jwt = localStorage.getItem("jwt")
+    // Hier könnten wir den Bestätigungstoken aus der URL lesen
+    const token = searchParams.get("token")
+    const confirmedEmail = searchParams.get("email")
 
-      if (user && jwt) {
-        router.push("/dashboard")
+    if (token) {
+      setIsConfirmed(true)
+      if (confirmedEmail) {
+        setEmail(confirmedEmail)
       }
     }
+  }, [searchParams])
 
-    checkAuth()
-
-    // Listen für Storage-Events (für Tab-Synchronisation)
-    const handleStorageChange = (e: StorageEvent) => {
-      if (e.key === "user" && e.newValue) {
-        router.push("/dashboard")
-      }
-    }
-
-    window.addEventListener("storage", handleStorageChange)
-    return () => window.removeEventListener("storage", handleStorageChange)
-  }, [router])
-
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsLoading(true)
     setError("")
@@ -55,13 +46,16 @@ export default function LoginPage() {
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ identifier, password }),
+        body: JSON.stringify({
+          identifier: email,
+          password,
+        }),
       })
 
       const data = await response.json()
 
       if (response.ok && data.user) {
-        // Session setzen
+        // Erfolgreiche Anmeldung - Session setzen
         localStorage.setItem("user", JSON.stringify(data.user))
         localStorage.setItem("jwt", data.jwt)
 
@@ -73,7 +67,7 @@ export default function LoginPage() {
           }),
         )
 
-        // Weiterleitung
+        // Weiterleitung zum Dashboard
         router.push("/dashboard")
       } else {
         setError(data.error || "Anmeldung fehlgeschlagen")
@@ -103,24 +97,28 @@ export default function LoginPage() {
         </div>
 
         <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-2xl">
-          <CardHeader className="text-center pb-8">
-            <CardTitle className="text-3xl font-bold text-slate-800">🔐 Anmelden</CardTitle>
-            <CardDescription className="text-slate-600 font-light">
-              Melden Sie sich bei Ihrem Sales Academy Konto an
+          <CardHeader className="text-center pb-6">
+            <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-green-100">
+              <CheckCircle className="h-8 w-8 text-green-600" />
+            </div>
+            <CardTitle className="text-2xl font-bold text-slate-800">✅ E-Mail bestätigt!</CardTitle>
+            <CardDescription className="text-slate-600">
+              Ihr Konto wurde erfolgreich aktiviert. Sie können sich jetzt anmelden.
             </CardDescription>
           </CardHeader>
+
           <CardContent className="px-8 pb-8">
-            <form onSubmit={handleSubmit} className="space-y-6">
+            <form onSubmit={handleLogin} className="space-y-6">
               <div className="space-y-3">
-                <Label htmlFor="identifier" className="text-slate-700 font-medium">
+                <Label htmlFor="email" className="text-slate-700 font-medium">
                   E-Mail-Adresse
                 </Label>
                 <Input
-                  id="identifier"
+                  id="email"
                   type="email"
                   placeholder="ihre.email@example.com"
-                  value={identifier}
-                  onChange={(e) => setIdentifier(e.target.value)}
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
                   required
                   disabled={isLoading}
                   className="h-12 px-4 rounded-xl border-slate-200 focus:border-slate-400 focus:ring-slate-400"
@@ -151,7 +149,7 @@ export default function LoginPage() {
 
               <Button
                 type="submit"
-                className="w-full h-12 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white rounded-xl shadow-lg hover:shadow-xl transition-all duration-200"
+                className="w-full h-12 bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white rounded-xl shadow-lg hover:shadow-xl transition-all duration-200"
                 disabled={isLoading}
               >
                 {isLoading ? (
@@ -160,19 +158,12 @@ export default function LoginPage() {
                     Wird angemeldet...
                   </>
                 ) : (
-                  "🚀 Anmelden"
+                  "🚀 Jetzt anmelden"
                 )}
               </Button>
             </form>
 
             <div className="mt-8 text-center space-y-4">
-              <Link
-                href="/auth/forgot-password"
-                className="text-sm text-slate-600 hover:text-slate-800 font-light transition-colors"
-              >
-                Passwort vergessen?
-              </Link>
-
               <div className="relative">
                 <div className="absolute inset-0 flex items-center">
                   <div className="w-full border-t border-slate-200"></div>
