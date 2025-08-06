@@ -1,25 +1,9 @@
 import { type NextRequest, NextResponse } from "next/server"
 
-// 🔍 ENV CHECK: Strapi Konfiguration
-console.log("\n🌍 === ENVIRONMENT CONFIGURATION ===");
-console.log("🔐 STRAPI_URL:           ", process.env.STRAPI_URL || "❌ NOT SET");
-console.log("🔐 STRAPI_API_TOKEN:     ", process.env.STRAPI_API_TOKEN ? "✅ SET (length: " + process.env.STRAPI_API_TOKEN.length + ")" : "❌ NOT SET");
-console.log("🟨 process.env Keys:", Object.keys(process.env).filter((key) => key.includes("STRAPI")));
-console.log("📍 Umgebung:             ", process.env.NODE_ENV);
-console.log("📁 Aktives Working Dir:  ", process.cwd());
-console.log("==============================\n");
-
-// ✅ Richtig für serverseitigen Code (z. B. in /api oder route.ts)
-const STRAPI_URL = process.env.STRAPI_URL || "https://strapi-elearning-8rff.onrender.com";
-const STRAPI_TOKEN = process.env.STRAPI_API_TOKEN || "DEIN_BACKUP_TOKEN_HIER";
-
-// 🛑 Abbruch mit klarer Fehlermeldung, falls Werte fehlen
-if (!STRAPI_URL || !STRAPI_TOKEN) {
-  console.error("❌ ENV-VARIABLEN FEHLEN:");
-  console.error("   STRAPI_URL: ", STRAPI_URL);
-  console.error("   STRAPI_TOKEN: ", STRAPI_TOKEN);
-  throw new Error("❌ STRAPI_URL oder STRAPI_API_TOKEN ist NICHT gesetzt – Abbruch!");
-}
+const STRAPI_URL = process.env.NEXT_PUBLIC_STRAPI_URL || "https://strapi-elearning-8rff.onrender.com"
+const STRAPI_TOKEN =
+  process.env.NEXT_PUBLIC_STRAPI_API_TOKEN ||
+  "992949dd37394d8faa798febe2bcd19c61aaa07c1b30873b4fe6cc4c6dce0db003fee18d71e12ec0ac5af64c61ffca2b4069eff02d5f3bfbe744a3757bc3ca01a6189fe687cd06517aaa3b1e91a28f8a943a1c97abe4958ded8d7e99b376d8203277"
 
 // 🎯 HILFSFUNKTIONEN FÜR LOGOS UND QUIZSETS
 async function loadLogos() {
@@ -203,12 +187,8 @@ export async function GET(request: NextRequest, context: { params: { courseId: s
       },
     })
 
-    console.log("📡 Status:", response.status)
-    if (!response.ok) {
-      const text = await response.text()
-      console.error("❌ Error Response:", text)
-      throw new Error(`❌ Fetch failed: ${response.status} - ${text}`)
-    }
+    console.log("📡 Response status:", response.status)
+    console.log("📡 Response OK:", response.ok)
     
     const raw = await response.text()
 
@@ -221,14 +201,9 @@ export async function GET(request: NextRequest, context: { params: { courseId: s
     }
 
     if (!response.ok) {
-      const errorText = await response.text();
-      console.error("❌ Strapi API returned an error:");
-      console.error("   Status:", response.status);
-      console.error("   StatusText:", response.statusText);
-      console.error("   Body:", errorText);
-      return NextResponse.json({ error: "Strapi request failed", details: errorText }, { status: response.status });
+      console.error("💥 Courses API error:", response.status, response.statusText, raw)
+      return NextResponse.json({ error: "Failed to fetch courses from Strapi", details: raw }, { status: response.status })
     }
-
 
     console.log("📦 Raw Courses API Response received")
     console.log("📦 Courses count:", data.data?.length || 0)
