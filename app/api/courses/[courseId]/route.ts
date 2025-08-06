@@ -217,9 +217,14 @@ export async function GET(request: NextRequest, context: { params: { courseId: s
     }
 
     if (!response.ok) {
-      console.error("💥 Courses API error:", response.status, response.statusText, raw)
-      return NextResponse.json({ error: "Failed to fetch courses from Strapi", details: raw }, { status: response.status })
+      const errorText = await response.text();
+      console.error("❌ Strapi API returned an error:");
+      console.error("   Status:", response.status);
+      console.error("   StatusText:", response.statusText);
+      console.error("   Body:", errorText);
+      return NextResponse.json({ error: "Strapi request failed", details: errorText }, { status: response.status });
     }
+
 
     console.log("📦 Raw Courses API Response received")
     console.log("📦 Courses count:", data.data?.length || 0)
