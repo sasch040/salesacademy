@@ -3,6 +3,7 @@ import { headers } from "next/headers"
 
 export async function GET() {
   try {
+    // ⏬ Cookie-Header analysieren
     const headersList = await headers()
     const cookieHeader = headersList.get("cookie") || ""
     const tokenMatch = cookieHeader.match(/token=([^;]+)/)
@@ -13,7 +14,15 @@ export async function GET() {
       return NextResponse.json({ error: "Nicht eingeloggt" }, { status: 401 })
     }
 
-    const strapiRes = await fetch(`${process.env.NEXT_PUBLIC_STRAPI_URL}/api/users/me`, {
+    // ⏬ Hole STRAPI_URL aus Server-Umgebung (nicht NEXT_PUBLIC!)
+    const STRAPI_URL = process.env.STRAPI_URL
+    if (!STRAPI_URL) {
+      console.error("❌ STRAPI_URL nicht gesetzt!")
+      return NextResponse.json({ error: "Fehlende Backend-URL" }, { status: 500 })
+    }
+
+    // ⏬ Anfrage an Strapi
+    const strapiRes = await fetch(`${STRAPI_URL}/api/users/me`, {
       headers: {
         Authorization: `Bearer ${token}`,
       },
