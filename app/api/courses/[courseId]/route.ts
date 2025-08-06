@@ -1,5 +1,14 @@
 import { type NextRequest, NextResponse } from "next/server"
 
+// 🔍 ENV CHECK: Strapi Konfiguration
+console.log("\n🌍 === ENVIRONMENT CONFIGURATION ===");
+console.log("🔐 STRAPI_URL:           ", process.env.STRAPI_URL || "❌ NOT SET");
+console.log("🔐 STRAPI_API_TOKEN:     ", process.env.STRAPI_API_TOKEN ? "✅ SET (length: " + process.env.STRAPI_API_TOKEN.length + ")" : "❌ NOT SET");
+console.log("🟨 process.env Keys:", Object.keys(process.env).filter((key) => key.includes("STRAPI")));
+console.log("📍 Umgebung:             ", process.env.NODE_ENV);
+console.log("📁 Aktives Working Dir:  ", process.cwd());
+console.log("==============================\n");
+
 // ✅ Richtig für serverseitigen Code (z. B. in /api oder route.ts)
 const STRAPI_URL = process.env.STRAPI_URL || "https://strapi-elearning-8rff.onrender.com";
 const STRAPI_TOKEN = process.env.STRAPI_API_TOKEN || "DEIN_BACKUP_TOKEN_HIER";
