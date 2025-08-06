@@ -169,7 +169,8 @@ async function loadQuizsets() {
 }
 
 export async function GET(request: NextRequest, context: { params: { courseId: string } }) {
-  const { courseId } = context.params // ✅ Jetzt korrekt
+  const params = await context.params // ✅ await hinzufügen
+  const courseId = params.courseId
   console.log(`\n🔍 === COURSE API DEBUG INFO ===`)
   console.log(`🎯 Course ID from URL: ${courseId}`)
   console.log("🌐 Strapi URL:", STRAPI_URL)
