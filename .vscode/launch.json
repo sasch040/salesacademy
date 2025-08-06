@@ -4,8 +4,8 @@
     {
       "type": "node",
       "request": "launch",
-      "name": "Next.js: Dev (Direktstart)",
-      "runtimeExecutable": "node",
+      "name": "Next.js: dev (Fix)",
+      "runtimeExecutable": "C:\\Program Files\\nodejs\\node.exe",
       "runtimeArgs": [
         "--inspect",
         "node_modules/next/dist/bin/next",
