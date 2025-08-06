@@ -13,6 +13,14 @@ console.log("==============================\n");
 const STRAPI_URL = process.env.STRAPI_URL || "https://strapi-elearning-8rff.onrender.com";
 const STRAPI_TOKEN = process.env.STRAPI_API_TOKEN || "DEIN_BACKUP_TOKEN_HIER";
 
+// 🛑 Abbruch mit klarer Fehlermeldung, falls Werte fehlen
+if (!STRAPI_URL || !STRAPI_TOKEN) {
+  console.error("❌ ENV-VARIABLEN FEHLEN:");
+  console.error("   STRAPI_URL: ", STRAPI_URL);
+  console.error("   STRAPI_TOKEN: ", STRAPI_TOKEN);
+  throw new Error("❌ STRAPI_URL oder STRAPI_API_TOKEN ist NICHT gesetzt – Abbruch!");
+}
+
 // 🎯 HILFSFUNKTIONEN FÜR LOGOS UND QUIZSETS
 async function loadLogos() {
   try {
