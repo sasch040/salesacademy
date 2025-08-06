@@ -1,48 +1,44 @@
-import { getToken, API_URL } from './auth';
-import { ModuleProgress } from './types';
+import { API_URL } from './auth'
+import { ModuleProgress } from './types'
 
 export async function getProgressByUser(): Promise<ModuleProgress[]> {
-  const token = getToken();
-  if (!token) throw new Error('Kein Token vorhanden');
+  const res = await fetch(`/api/progress`, {
+    method: 'GET',
+    credentials: 'include', // sendet HttpOnly-Cookie mit
+  })
 
-  const res = await fetch(`${API_URL}/api/module-progresses?populate=module&filters[users_permissions_user][id][$eq]=ME`, {
-    headers: {
-      Authorization: `Bearer ${token}`,
-    },
-  });
+  if (!res.ok) throw new Error('Fehler beim Laden des Fortschritts')
 
-  const data = await res.json();
-  return data?.data || [];
+  const data = await res.json()
+  return data || []
 }
 
 export async function saveProgress(progress: Partial<ModuleProgress>) {
-  const token = getToken();
-  if (!token) throw new Error('Kein Token vorhanden');
-
-  const res = await fetch(`${API_URL}/api/module-progresses`, {
+  const res = await fetch(`/api/progress`, {
     method: 'POST',
+    credentials: 'include',
     headers: {
       'Content-Type': 'application/json',
-      Authorization: `Bearer ${token}`,
     },
-    body: JSON.stringify({ data: progress }),
-  });
+    body: JSON.stringify(progress),
+  })
 
-  return res.json();
+  if (!res.ok) throw new Error('Fehler beim Speichern des Fortschritts')
+
+  return res.json()
 }
 
 export async function updateProgress(moduleId: number, updates: Partial<ModuleProgress>) {
-  const token = getToken();
-  if (!token) throw new Error('Kein Token vorhanden');
-
   const res = await fetch(`/api/progress/${moduleId}`, {
     method: 'PUT',
+    credentials: 'include',
     headers: {
       'Content-Type': 'application/json',
-      Authorization: `Bearer ${token}`,
     },
     body: JSON.stringify(updates),
-  });
+  })
 
-  return res.json();
+  if (!res.ok) throw new Error('Fehler beim Aktualisieren des Fortschritts')
+
+  return res.json()
 }
