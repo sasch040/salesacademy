@@ -125,17 +125,33 @@ export default function DynamicCoursePage() {
       setError("Keine Kurs-ID gefunden")
       setLoading(false)
     }
-  }, [courseId])
-
-  // User authentication
+    
   useEffect(() => {
-    const email = localStorage.getItem("userEmail")
-    if (!email) {
-      router.push("/login")
-    } else {
-      setUserEmail(email)
+    const checkAuth = async () => {
+      try {
+        const res = await fetch("/api/auth/me", {
+          method: "GET",
+          credentials: "include", // wichtig für Cookie-Auth!
+        })
+
+        if (!res.ok) {
+          console.warn("⛔ Nicht eingeloggt – Weiterleitung zum Login")
+          router.push("/auth/login")
+          return
+        }
+
+        const data = await res.json()
+        console.log("✅ Authentifizierter User:", data.user)
+        setUserEmail(data.user?.email || "")
+      } catch (err) {
+        console.error("💥 Fehler bei Auth-Check:", err)
+        router.push("/auth/login")
+      }
     }
+
+    checkAuth()
   }, [router])
+
 
   // ID-basierte Funktionen
   const toggleModule = (moduleId: number) => {
