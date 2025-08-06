@@ -1,6 +1,6 @@
 import { type NextRequest, NextResponse } from "next/server"
 
-const STRAPI_URL = process.env.NEXT_PUBLIC_STRAPI_URL || "https://strapi-elearning-8rff.onrender.com"
+const STRAPI_URL = process.env.STRAPI_URL || "https://strapi-elearning-8rff.onrender.com"
 const STRAPI_TOKEN = process.env.STRAPI_API_TOKEN
 
 if (!STRAPI_TOKEN) {
