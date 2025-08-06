@@ -17,17 +17,11 @@ export const ProgressProvider = ({ children }: { children: React.ReactNode }) =>
   const [progress, setProgress] = useState<ModuleProgress[]>([]);
 
   const refreshProgress = async () => {
-    const token = getToken();
-    if (!token) {
-      console.warn('⛔ Kein Token vorhanden – Fortschritt wird nicht geladen');
-      return;
-    }
-
     try {
       const data = await getProgressByUser();
       setProgress(data);
     } catch (err) {
-      console.error('Progress konnte nicht geladen werden', err);
+      console.error('⚠️ Fortschritt konnte nicht geladen werden:', err);
     }
   };
 
