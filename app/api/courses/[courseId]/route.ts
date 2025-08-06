@@ -1,9 +1,12 @@
 import { type NextRequest, NextResponse } from "next/server"
 
 const STRAPI_URL = process.env.NEXT_PUBLIC_STRAPI_URL || "https://strapi-elearning-8rff.onrender.com"
-const STRAPI_TOKEN =
-  process.env.NEXT_PUBLIC_STRAPI_API_TOKEN ||
-  "992949dd37394d8faa798febe2bcd19c61aaa07c1b30873b4fe6cc4c6dce0db003fee18d71e12ec0ac5af64c61ffca2b4069eff02d5f3bfbe744a3757bc3ca01a6189fe687cd06517aaa3b1e91a28f8a943a1c97abe4958ded8d7e99b376d8203277"
+const STRAPI_TOKEN = process.env.STRAPI_API_TOKEN
+
+if (!STRAPI_TOKEN) {
+  throw new Error("❌ STRAPI_API_TOKEN ist nicht gesetzt – API kann nicht authentifiziert werden")
+}
+
 
 // 🎯 HILFSFUNKTIONEN FÜR LOGOS UND QUIZSETS
 async function loadLogos() {
