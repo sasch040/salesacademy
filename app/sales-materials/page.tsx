@@ -43,20 +43,37 @@ export default function SalesMaterialsPage() {
   const [selectedType, setSelectedType] = useState<string>("all")
   const router = useRouter()
 
+const [isAuthenticated, setIsAuthenticated] = useState(false)
+
   useEffect(() => {
-    const checkAuth = () => {
-      const userEmail = localStorage.getItem("userEmail")
-      if (!userEmail) {
-        router.push("/login")
-        return false
+    const checkAuth = async () => {
+      try {
+        const res = await fetch("/api/auth/me", {
+          method: "GET",
+          credentials: "include",
+        })
+
+        if (!res.ok) {
+          router.push("/auth/login")
+          return
+        }
+
+        const data = await res.json()
+        console.log("✅ Authentifizierter User:", data.user)
+        setIsAuthenticated(true)
+      } catch (err) {
+        console.error("Fehler bei Auth-Check:", err)
+        router.push("/auth/login")
       }
-      return true
     }
 
-    if (checkAuth()) {
-      loadSalesMaterials()
-    }
+    checkAuth()
   }, [router])
+
+  useEffect(() => {
+    if (!isAuthenticated) return
+    loadSalesMaterials()
+  }, [isAuthenticated])
 
   const loadSalesMaterials = async () => {
     try {
@@ -75,6 +92,7 @@ export default function SalesMaterialsPage() {
       setLoading(false)
     }
   }
+
 
   const getTypeIcon = (type: string) => {
     switch (type.toLowerCase()) {

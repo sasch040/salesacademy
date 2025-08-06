@@ -122,17 +122,7 @@ export async function POST(request: NextRequest) {
         // JWT Token Handling
         console.log("✅ JWT Token generated successfully")
         const token = strapiJwt // ← Das kommt direkt aus der Strapi-Antwort
-        const cookieStore = await cookies()
-        cookieStore.set("token", token, {
-          httpOnly: true,
-          secure: true,
-          sameSite: "lax",
-          path: "/",
-          maxAge: 60 * 60 * 24 * 7, // 1 Woche
-        })
-        console.log("🍪 Cookie gesetzt")
-
-        return NextResponse.json({
+        const response = NextResponse.json({
           success: true,
           message: "Login successful via Strapi",
           user: {
@@ -142,7 +132,19 @@ export async function POST(request: NextRequest) {
             username: user.username,
           },
           token,
-        })
+        });
+
+        response.cookies.set("token", token, {
+          httpOnly: true,
+          secure: true,
+          sameSite: "lax",
+          path: "/",
+          maxAge: 60 * 60 * 24 * 7, // 1 Woche
+        });
+
+        console.log("🍪 Cookie gesetzt")
+        return response;
+        
       } else {
         console.log("❌ Invalid credentials or user not found in Strapi")
         return NextResponse.json({ error: "Invalid email or password" }, { status: 401 })
