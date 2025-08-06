@@ -2,7 +2,7 @@
 
 import type React from "react"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -19,6 +19,16 @@ export default function LoginPage() {
   const [error, setError] = useState("")
   const [warning, setWarning] = useState("")
   const router = useRouter()
+
+  // Listen für Auth-Events von anderen Tabs
+  useEffect(() => {
+    const handleAuthSuccess = () => {
+      router.push("/dashboard")
+    }
+
+    window.addEventListener("auth-success", handleAuthSuccess)
+    return () => window.removeEventListener("auth-success", handleAuthSuccess)
+  }, [router])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -56,16 +66,8 @@ export default function LoginPage() {
       if (response.ok && data.user) {
         console.log("✅ Login successful")
 
-        // JWT Token im localStorage speichern
-        if (data.token) {
-          localStorage.setItem("authToken", data.token)
-          localStorage.setItem("userEmail", email)
-          localStorage.setItem("userRole", data.user?.role || "student")
-
-          if (data.user?.id) {
-            localStorage.setItem("userId", data.user.id.toString())
-          }
-        }
+        // Benachrichtige andere Tabs über erfolgreiche Anmeldung
+        window.dispatchEvent(new CustomEvent("auth-success"))
 
         // Warning anzeigen falls Fallback-Modus
         if (data.warning) {
