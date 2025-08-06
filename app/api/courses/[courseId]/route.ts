@@ -176,33 +176,83 @@ export async function GET(request: NextRequest, context: { params: { courseId: s
   console.log("🔑 API Token present:", !!STRAPI_TOKEN)
 
   try {
-    // 🎯 DIREKTE COURSES API ABFRAGE
+    // 🎯 DIREKTE COURSES API ABFRAGE MIT BESSERER FEHLERBEHANDLUNG
     const coursesUrl = `${STRAPI_URL}/api/courses?populate=*`
     console.log("📡 Making request to Courses API:", coursesUrl)
 
-    const response = await fetch(coursesUrl, {
-      headers: {
-        Authorization: `Bearer ${STRAPI_TOKEN}`,
-        "Content-Type": "application/json",
-      },
-    })
-
-    console.log("📡 Response status:", response.status)
-    console.log("📡 Response OK:", response.ok)
+    let response;
+    let data: any;
     
-    const raw = await response.text()
-
-    let data: any
     try {
-      data = JSON.parse(raw)
-    } catch (err) {
-      console.error("❌ Could not parse JSON from Strapi:", raw)
-      return NextResponse.json({ error: "Strapi returned invalid JSON" }, { status: 500 })
-    }
+      response = await fetch(coursesUrl, {
+        headers: {
+          Authorization: `Bearer ${STRAPI_TOKEN}`,
+          "Content-Type": "application/json",
+        },
+        // Add timeout and other options
+        signal: AbortSignal.timeout(10000), // 10 second timeout
+      })
 
-    if (!response.ok) {
-      console.error("💥 Courses API error:", response.status, response.statusText, raw)
-      return NextResponse.json({ error: "Failed to fetch courses from Strapi", details: raw }, { status: response.status })
+      console.log("📡 Response status:", response.status)
+      console.log("📡 Response OK:", response.ok)
+      
+      const raw = await response.text()
+
+      try {
+        data = JSON.parse(raw)
+      } catch (err) {
+        console.error("❌ Could not parse JSON from Strapi:", raw)
+        throw new Error("Strapi returned invalid JSON")
+      }
+
+      if (!response.ok) {
+        console.error("💥 Courses API error:", response.status, response.statusText, raw)
+        throw new Error(`Strapi API error: ${response.status} ${response.statusText}`)
+      }
+
+    } catch (fetchError) {
+      console.error("💥 Strapi fetch failed:", fetchError.message)
+      
+      // 🎯 FALLBACK DATA WHEN STRAPI IS NOT AVAILABLE
+      console.log("🔄 Using fallback course data...")
+      
+      const fallbackCourse = {
+        id: parseInt(courseId),
+        title: `Kurs ${courseId}`,
+        description: "Dieser Kurs wird geladen. Bitte versuchen Sie es später erneut.",
+        logo: `/placeholder.svg?height=64&width=64&text=Kurs${courseId}`,
+        gradient: "from-slate-500 to-slate-600",
+        modules: [
+          {
+            id: 1,
+            title: "Einführung",
+            description: "Grundlagen und erste Schritte",
+            duration: "15 Min",
+            type: "video" as const,
+            completed: false,
+            videoUrl: "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
+            videoTitle: "Einführungsvideo",
+            quiz: {
+              questions: [
+                {
+                  id: 1,
+                  question: "Was ist das Hauptziel dieses Kurses?",
+                  options: ["Lernen", "Verstehen", "Anwenden", "Alle Antworten"],
+                  correctAnswer: 3,
+                },
+              ],
+              passingScore: 70,
+            },
+          },
+        ],
+      }
+
+      console.log(`🎉 Fallback course created:`)
+      console.log(`   📝 Title: ${fallbackCourse.title}`)
+      console.log(`   🔢 ID: ${fallbackCourse.id}`)
+      console.log(`   📚 Modules: ${fallbackCourse.modules.length}`)
+
+      return NextResponse.json(fallbackCourse)
     }
 
     console.log("📦 Raw Courses API Response received")
@@ -224,50 +274,66 @@ export async function GET(request: NextRequest, context: { params: { courseId: s
       return NextResponse.json({ error: `Course with ID "${courseId}" not found` }, { status: 404 })
     }
 
+    // Continue with the rest of the existing logic...
     // 🎯 HOLE ZUGEHÖRIGE MODULE
     console.log("📡 Loading modules for course...")
     const modulesUrl = `${STRAPI_URL}/api/modules?populate=*`
-    const modulesResponse = await fetch(modulesUrl, {
-      headers: {
-        Authorization: `Bearer ${STRAPI_TOKEN}`,
-        "Content-Type": "application/json",
-      },
-    })
-
+    
     let courseModules = []
-    if (modulesResponse.ok) {
-      const modulesData = await modulesResponse.json()
-      console.log("📚 Total modules available:", modulesData.data?.length || 0)
+    try {
+      const modulesResponse = await fetch(modulesUrl, {
+        headers: {
+          Authorization: `Bearer ${STRAPI_TOKEN}`,
+          "Content-Type": "application/json",
+        },
+        signal: AbortSignal.timeout(10000),
+      })
 
-      // Filter Module für diesen Kurs
-      if (modulesData.data && Array.isArray(modulesData.data)) {
-        courseModules = modulesData.data.filter((module) => {
-          // Prüfe verschiedene mögliche Referenz-Strukturen
-          const moduleAttributes = module.attributes || module
-          const coursRef = moduleAttributes.course || moduleAttributes.courses
+      if (modulesResponse.ok) {
+        const modulesData = await modulesResponse.json()
+        console.log("📚 Total modules available:", modulesData.data?.length || 0)
 
-          if (coursRef?.data) {
-            // Strapi v4 Format mit data wrapper
-            return (
-              coursRef.data.id == courseId ||
-              (Array.isArray(coursRef.data) && coursRef.data.some((c) => c.id == courseId))
-            )
-          } else if (coursRef) {
-            // Direkter Verweis
-            return coursRef.id == courseId || coursRef == courseId
-          }
-          return false
-        })
+        // Filter Module für diesen Kurs
+        if (modulesData.data && Array.isArray(modulesData.data)) {
+          courseModules = modulesData.data.filter((module) => {
+            // Prüfe verschiedene mögliche Referenz-Strukturen
+            const moduleAttributes = module.attributes || module
+            const coursRef = moduleAttributes.course || moduleAttributes.courses
+
+            if (coursRef?.data) {
+              // Strapi v4 Format mit data wrapper
+              return (
+                coursRef.data.id == courseId ||
+                (Array.isArray(coursRef.data) && coursRef.data.some((c) => c.id == courseId))
+              )
+            } else if (coursRef) {
+              // Direkter Verweis
+              return coursRef.id == courseId || coursRef == courseId
+            }
+            return false
+          })
+        }
+
+        console.log(`📚 Modules found for course ${courseId}:`, courseModules.length)
+      } else {
+        console.warn("⚠️ Failed to load modules, using empty array")
       }
-
-      console.log(`📚 Modules found for course ${courseId}:`, courseModules.length)
-    } else {
-      console.warn("⚠️ Failed to load modules, using empty array")
+    } catch (moduleError) {
+      console.warn("⚠️ Failed to load modules:", moduleError.message)
     }
 
-    // 🎯 LADE LOGOS UND QUIZSETS
+    // 🎯 LADE LOGOS UND QUIZSETS MIT FEHLERBEHANDLUNG
     console.log("📡 Loading logos and quizsets...")
-    const [logos, quizsetsByModule] = await Promise.all([loadLogos(), loadQuizsets()])
+    const [logos, quizsetsByModule] = await Promise.all([
+      loadLogos().catch(err => {
+        console.warn("⚠️ Failed to load logos:", err.message)
+        return {}
+      }),
+      loadQuizsets().catch(err => {
+        console.warn("⚠️ Failed to load quizsets:", err.message)
+        return {}
+      })
+    ])
 
     console.log("📷 Logos loaded:", Object.keys(logos).length)
     console.log("🧠 Quizsets loaded for modules:", Object.keys(quizsetsByModule).length)
