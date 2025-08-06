@@ -203,8 +203,12 @@ export async function GET(request: NextRequest, context: { params: { courseId: s
       },
     })
 
-    console.log("📡 Response status:", response.status)
-    console.log("📡 Response OK:", response.ok)
+    console.log("📡 Status:", response.status)
+    if (!response.ok) {
+      const text = await response.text()
+      console.error("❌ Error Response:", text)
+      throw new Error(`❌ Fetch failed: ${response.status} - ${text}`)
+    }
     
     const raw = await response.text()
 
