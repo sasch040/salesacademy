@@ -3,7 +3,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { ModuleProgress } from '@/lib/types';
 import { getProgressByUser, saveProgress, updateProgress } from '@/lib/progress';
-import { getToken } from '@/lib/auth'; // ✅ Gültig – gehört nach oben
 
 interface ProgressContextType {
   progress: ModuleProgress[];
