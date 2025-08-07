@@ -1,7 +1,7 @@
 import { type NextRequest, NextResponse } from "next/server"
 
 const STRAPI_URL = "https://strapi-elearning-8rff.onrender.com"
-const STRAPI_TOKEN = process.env.STRAPI_API_TOKEN || "DEIN_TOKEN_HIER"
+const STRAPI_TOKEN = process.env.STRAPI_API_TOKEN || "<dein fallback token>"
 
 export async function GET(request: NextRequest) {
   try {
@@ -15,7 +15,7 @@ export async function GET(request: NextRequest) {
     }
 
     const salesMaterialsUrl = `${STRAPI_URL}/api/sales-materials?populate=*`
-    console.log("📡 Fetching from:", salesMaterialsUrl)
+    console.log("📡 Request to:", salesMaterialsUrl)
 
     const response = await fetch(salesMaterialsUrl, {
       headers: {
@@ -26,52 +26,83 @@ export async function GET(request: NextRequest) {
 
     if (!response.ok) {
       const errorText = await response.text()
-      console.error("💥 API error:", response.status, response.statusText, errorText)
+      console.error("💥 API Error:", response.status, response.statusText, errorText)
       throw new Error(`Strapi returned ${response.status}: ${response.statusText}`)
     }
 
-    const { data } = await response.json()
-    console.log("📊 Sales Materials fetched:", data?.length || 0)
+    const data = await response.json()
+    console.log("📦 Materials count:", data.data?.length || 0)
 
-    // 🎯 FLACHES ARRAY (statt gruppiert nach Produkt)
-    const materials = data.map((item: any) => {
-      const itemAttributes = item.attributes || item
-      const product = itemAttributes.product?.data || itemAttributes.product
-      const productAttributes = product?.attributes || product || {}
+    // 🧱 Gruppieren nach Produkttitel (nicht ID!)
+    const groupedByProduct: Record<string, any> = {}
 
-      const file = itemAttributes.file?.data || itemAttributes.file
-      const fileAttributes = file?.attributes || file || {}
+    if (data.data && Array.isArray(data.data)) {
+      data.data.forEach((item: any) => {
+        const itemAttributes = item.attributes || item
+        const product = itemAttributes.product?.data || itemAttributes.product
 
-      return {
-        id: item.id,
-        title: itemAttributes.title,
-        description: itemAttributes.description,
-        type: itemAttributes.type,
-        category: itemAttributes.category,
-        fileUrl: fileAttributes.url?.startsWith("http")
-          ? fileAttributes.url
-          : fileAttributes.url
-          ? `${STRAPI_URL}${fileAttributes.url}`
-          : null,
-        fileSize: formatFileSize(fileAttributes?.size || 0),
-        language: itemAttributes.language || "de",
-        lastUpdated: formatDate(itemAttributes.updatedAt || item.updatedAt),
-        tags: Array.isArray(itemAttributes.tags) ? itemAttributes.tags : [],
-        productId: product?.id || null,
-        productTitle: productAttributes.titel || productAttributes.name || "Produkt",
-        productLogo: productAttributes.logo?.data?.attributes?.url
-          ? `${STRAPI_URL}${productAttributes.logo.data.attributes.url}`
-          : productAttributes.logo?.url
-          ? `${STRAPI_URL}${productAttributes.logo.url}`
-          : null,
-        gradient: productAttributes.gradient || "from-slate-500 to-slate-600",
-      }
-    })
+        if (!product) {
+          console.warn("⚠️ Material without product:", item.id)
+          return
+        }
 
-    console.log("✅ Materials ready for frontend:", materials.length)
-    return NextResponse.json(materials)
+        const productAttributes = product.attributes || product
+        const productTitle = productAttributes.titel || productAttributes.title || `Produkt ${product.id || "?"}`
+
+        if (!groupedByProduct[productTitle]) {
+          groupedByProduct[productTitle] = {
+            title: productTitle,
+            logo: productAttributes.logo?.data?.attributes?.url
+              ? `${STRAPI_URL}${productAttributes.logo.data.attributes.url}`
+              : productAttributes.logo?.url
+              ? `${STRAPI_URL}${productAttributes.logo.url}`
+              : `/images/product-${product.id}-logo.png`,
+            gradient: productAttributes.gradient || "from-slate-500 to-slate-600",
+            materials: [],
+          }
+        }
+
+        // 📎 Datei-Handling
+        const fileData = itemAttributes.file?.data || itemAttributes.file
+        const fileAttributes = fileData?.attributes || fileData
+
+        const fileUrl = fileAttributes?.url
+          ? fileAttributes.url.startsWith("http")
+            ? fileAttributes.url
+            : `${STRAPI_URL}${fileAttributes.url}`
+          : null
+
+        groupedByProduct[productTitle].materials.push({
+          id: item.id,
+          title: itemAttributes.title,
+          description: itemAttributes.description,
+          type: itemAttributes.type,
+          category: itemAttributes.category,
+          fileUrl: fileUrl,
+          fileSize: formatFileSize(fileAttributes?.size || 0),
+          language: itemAttributes.language || "de",
+          lastUpdated: formatDate(itemAttributes.updatedAt || item.updatedAt),
+          tags: Array.isArray(itemAttributes.tags) ? itemAttributes.tags : [],
+        })
+      })
+    }
+
+    console.log("✅ Processed products:", Object.keys(groupedByProduct).length)
+
+    // 🔁 Flach machen für das Frontend
+    const flatMaterials = Object.entries(groupedByProduct).flatMap(([productTitle, product]) =>
+      product.materials.map((material: any) => ({
+        ...material,
+        productTitle,
+        productLogo: product.logo,
+        gradient: product.gradient,
+      }))
+    )
+
+    console.log("📦 Final response size:", flatMaterials.length)
+    return NextResponse.json(flatMaterials)
   } catch (error) {
-    console.error("💥 Sales Materials API error:", error)
+    console.error("💥 Fallback wegen Fehler:", error)
 
     const { getSalesMaterialsData } = await import("@/lib/sales-materials-data")
     const fallbackData = await getSalesMaterialsData()

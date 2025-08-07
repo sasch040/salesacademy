@@ -7,17 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import {
-  ArrowLeft,
-  Search,
-  Download,
-  FileText,
-  Video,
-  ImageIcon,
-  Presentation,
-  Filter,
-  ExternalLink,
-} from "lucide-react"
+import { ArrowLeft, Search, Download, FileText, Video, ImageIcon, Presentation, Filter } from 'lucide-react'
 import Link from "next/link"
 import Image from "next/image"
 
@@ -26,12 +16,16 @@ interface SalesMaterial {
   title: string
   description: string
   type: string
-  file_url: string
+  fileUrl: string
   thumbnail: string
   category: string
   tags: string[]
   created_at: string
   updated_at: string
+  productId?: string
+  productTitle?: string
+  productLogo?: string
+  gradient?: string
 }
 
 export default function SalesMaterialsPage() {
@@ -41,9 +35,10 @@ export default function SalesMaterialsPage() {
   const [searchTerm, setSearchTerm] = useState("")
   const [selectedCategory, setSelectedCategory] = useState<string>("all")
   const [selectedType, setSelectedType] = useState<string>("all")
+  const [selectedProduct, setSelectedProduct] = useState<string>("all")
   const router = useRouter()
 
-const [isAuthenticated, setIsAuthenticated] = useState(false)
+  const [isAuthenticated, setIsAuthenticated] = useState(false)
 
   useEffect(() => {
     const checkAuth = async () => {
@@ -93,7 +88,6 @@ const [isAuthenticated, setIsAuthenticated] = useState(false)
     }
   }
 
-
   const getTypeIcon = (type: string) => {
     switch (type.toLowerCase()) {
       case "pdf":
@@ -134,10 +128,12 @@ const [isAuthenticated, setIsAuthenticated] = useState(false)
 
     const matchesCategory = selectedCategory === "all" || material.category === selectedCategory
     const matchesType = selectedType === "all" || material.type.toLowerCase() === selectedType.toLowerCase()
+    const matchesProduct = selectedProduct === "all" || material.productTitle === selectedProduct
 
-    return matchesSearch && matchesCategory && matchesType
+    return matchesSearch && matchesCategory && matchesType && matchesProduct
   })
 
+  const products = Array.from(new Set(materials.map((m) => m.productTitle).filter(Boolean)))
   const categories = Array.from(new Set(materials.map((m) => m.category)))
   const types = Array.from(new Set(materials.map((m) => m.type)))
 
@@ -212,7 +208,7 @@ const [isAuthenticated, setIsAuthenticated] = useState(false)
         {/* Filters */}
         <Card className="mb-8 bg-white/70 backdrop-blur-sm border-0 shadow-lg">
           <CardContent className="p-6">
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400 h-4 w-4" />
                 <Input
@@ -222,6 +218,20 @@ const [isAuthenticated, setIsAuthenticated] = useState(false)
                   className="pl-10"
                 />
               </div>
+
+              <Select value={selectedProduct} onValueChange={setSelectedProduct}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Produkt" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Alle Produkte</SelectItem>
+                  {products.map((productTitle) => (
+                    <SelectItem key={productTitle} value={productTitle}>
+                      {productTitle}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
 
               <Select value={selectedCategory} onValueChange={setSelectedCategory}>
                 <SelectTrigger>
@@ -251,7 +261,16 @@ const [isAuthenticated, setIsAuthenticated] = useState(false)
                 </SelectContent>
               </Select>
 
-              <Button variant="outline" className="flex items-center gap-2 bg-transparent">
+              <Button 
+                variant="outline" 
+                className="flex items-center gap-2 bg-transparent"
+                onClick={() => {
+                  setSearchTerm("")
+                  setSelectedCategory("all")
+                  setSelectedType("all")
+                  setSelectedProduct("all")
+                }}
+              >
                 <Filter className="h-4 w-4" />
                 Filter zurücksetzen
               </Button>
@@ -286,18 +305,24 @@ const [isAuthenticated, setIsAuthenticated] = useState(false)
                   </Badge>
                 </div>
 
-                <div className="aspect-video bg-slate-100 rounded-lg overflow-hidden mb-4">
-                  <Image
-                    src={material.thumbnail || "/placeholder.svg?height=200&width=300&text=Preview"}
-                    alt={material.title}
-                    width={300}
-                    height={200}
-                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                    onError={(e) => {
-                      e.currentTarget.src = "/placeholder.svg?height=200&width=300&text=Preview"
-                    }}
-                  />
-                </div>
+                {/* Product Info */}
+                {material.productTitle && (
+                  <div className="flex items-center gap-2 mb-3 p-2 bg-slate-50 rounded-lg">
+                    {material.productLogo && (
+                      <Image
+                        src={material.productLogo || "/placeholder.svg"}
+                        alt={material.productTitle}
+                        width={24}
+                        height={24}
+                        className="w-6 h-6 object-contain"
+                        onError={(e) => {
+                          e.currentTarget.style.display = "none"
+                        }}
+                      />
+                    )}
+                    <span className="text-sm font-medium text-slate-700">{material.productTitle}</span>
+                  </div>
+                )}
 
                 <CardTitle className="text-lg font-bold text-slate-800 line-clamp-2">{material.title}</CardTitle>
                 <CardDescription className="text-slate-600 line-clamp-3">{material.description}</CardDescription>
@@ -321,14 +346,19 @@ const [isAuthenticated, setIsAuthenticated] = useState(false)
                 {/* Actions */}
                 <div className="flex gap-2">
                   <Button
-                    onClick={() => window.open(material.file_url, "_blank")}
-                    className="flex-1 bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white"
+                    onClick={() => {
+                      const link = document.createElement("a")
+                      link.href = material.fileUrl
+                      link.download = material.title || "datei" // Setzt Dateinamen, optional
+                      document.body.appendChild(link)
+                      link.click()
+                      document.body.removeChild(link)
+                    }}
+                    className="w-full bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white"
+                    disabled={!material.fileUrl}
                   >
                     <Download className="h-4 w-4 mr-2" />
                     Download
-                  </Button>
-                  <Button variant="outline" onClick={() => window.open(material.file_url, "_blank")} className="px-3">
-                    <ExternalLink className="h-4 w-4" />
                   </Button>
                 </div>
 
@@ -356,6 +386,7 @@ const [isAuthenticated, setIsAuthenticated] = useState(false)
                 setSearchTerm("")
                 setSelectedCategory("all")
                 setSelectedType("all")
+                setSelectedProduct("all")
               }}
               variant="outline"
             >

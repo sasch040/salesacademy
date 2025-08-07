@@ -6,18 +6,7 @@ import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import {
-  BookOpen,
-  Clock,
-  Award,
-  TrendingUp,
-  Target,
-  ChevronRight,
-  Play,
-  CheckCircle,
-  BarChart3,
-  LogOut,
-} from "lucide-react"
+import { BookOpen, Clock, Award, TrendingUp, Target, ChevronRight, Play, CheckCircle, BarChart3, LogOut } from 'lucide-react'
 import Link from "next/link"
 import Image from "next/image"
 import { useAuth } from "@/contexts/AuthContext"
@@ -245,11 +234,7 @@ export default function Dashboard() {
                 <h3 className="text-2xl font-bold text-slate-800 mb-2">Verfügbare Kurse</h3>
                 <p className="text-slate-600 font-light">Wählen Sie einen Kurs aus, um mit dem Lernen zu beginnen</p>
               </div>
-              <Link href="/sales-materials">
-                <Button className="bg-gradient-to-r from-slate-600 to-slate-700 hover:from-slate-700 hover:to-slate-800 text-white px-6 py-2 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300">
-                  📄 Sales Materials
-                </Button>
-              </Link>
+              
             </div>
 
             {products.length === 0 ? (
@@ -335,42 +320,31 @@ export default function Dashboard() {
             )}
           </div>
 
-          {/* Quick Actions */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-            <Card className="bg-gradient-to-br from-blue-50 to-blue-100 border-2 border-blue-200 shadow-xl">
-              <CardContent className="p-8">
-                <div className="flex items-center gap-4 mb-4">
-                  <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-blue-600 rounded-2xl flex items-center justify-center shadow-lg">
-                    <Target className="h-6 w-6 text-white" />
-                  </div>
-                  <div>
-                    <h4 className="text-xl font-bold text-slate-800">Lernziele setzen</h4>
-                    <p className="text-sm text-slate-600">Definieren Sie Ihre persönlichen Lernziele</p>
-                  </div>
+          {/* Sales Materials Section */}
+          <Card className="bg-gradient-to-br from-indigo-50 to-indigo-100 border-2 border-indigo-200 shadow-xl w-full">
+            <CardContent className="p-8">
+              <div className="flex flex-col md:flex-row items-start md:items-center gap-6">
+                <div className="w-16 h-16 bg-gradient-to-br from-indigo-500 to-indigo-600 rounded-2xl flex items-center justify-center shadow-lg flex-shrink-0">
+                  <BookOpen className="h-8 w-8 text-white" />
                 </div>
-                <Button className="bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white px-6 py-2 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300">
-                  Ziele definieren
-                </Button>
-              </CardContent>
-            </Card>
-
-            <Card className="bg-gradient-to-br from-green-50 to-green-100 border-2 border-green-200 shadow-xl">
-              <CardContent className="p-8">
-                <div className="flex items-center gap-4 mb-4">
-                  <div className="w-12 h-12 bg-gradient-to-br from-green-500 to-green-600 rounded-2xl flex items-center justify-center shadow-lg">
-                    <BarChart3 className="h-6 w-6 text-white" />
-                  </div>
-                  <div>
-                    <h4 className="text-xl font-bold text-slate-800">Fortschritt verfolgen</h4>
-                    <p className="text-sm text-slate-600">Sehen Sie Ihre Lernstatistiken ein</p>
-                  </div>
+                <div className="flex-1">
+                  <h4 className="text-2xl font-bold text-slate-800 mb-2">Sales Materials</h4>
+                  <p className="text-slate-600 mb-4 font-light">
+                    Entdecken Sie unsere umfangreiche Sammlung von Sales Materials, Präsentationen und Verkaufstools. 
+                    Zugriff auf alle professionellen Verkaufsunterlagen und Ressourcen für Ihren Erfolg.
+                  </p>
                 </div>
-                <Button className="bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white px-6 py-2 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300">
-                  Statistiken ansehen
-                </Button>
-              </CardContent>
-            </Card>
-          </div>
+                <div className="flex-shrink-0">
+                  <Link href="/sales-materials" className="block">
+                    <Button className="bg-gradient-to-r from-indigo-500 to-indigo-600 hover:from-indigo-600 hover:to-indigo-700 text-white px-8 py-3 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 flex items-center gap-3 text-lg font-semibold">
+                      <span>📄 Materials öffnen</span>
+                      <ChevronRight className="h-5 w-5" />
+                    </Button>
+                  </Link>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
         </main>
       </div>
   )

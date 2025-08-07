@@ -10,9 +10,11 @@ export interface AuthResponse {
 }
 
 export interface ModuleProgress {
-  id: number;
-  module: number;
-  videoWatched: boolean;
-  quizCompleted: boolean;
-  completed: boolean;
+  id: number
+  module: number | string
+  completed: boolean
+  quizCompleted: boolean
+  videoWatched: boolean
+  users_permissions_user: number // oder string
 }
+
