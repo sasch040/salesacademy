@@ -7,7 +7,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { ArrowLeft, Search, Download, FileText, Video, ImageIcon, Presentation, Filter, ExternalLink } from 'lucide-react'
+import { DocumentPreview } from "@/components/ui/document-preview"
+import { ArrowLeft, Search, Download, FileText, Video, ImageIcon, Presentation, Filter, ExternalLink, Eye } from 'lucide-react'
 import Link from "next/link"
 import Image from "next/image"
 
@@ -245,7 +246,15 @@ const [isAuthenticated, setIsAuthenticated] = useState(false)
                 </SelectContent>
               </Select>
 
-              <Button variant="outline" className="flex items-center gap-2 bg-transparent">
+              <Button 
+                variant="outline" 
+                className="flex items-center gap-2 bg-transparent"
+                onClick={() => {
+                  setSearchTerm("")
+                  setSelectedCategory("all")
+                  setSelectedType("all")
+                }}
+              >
                 <Filter className="h-4 w-4" />
                 Filter zurücksetzen
               </Button>
@@ -314,15 +323,31 @@ const [isAuthenticated, setIsAuthenticated] = useState(false)
 
                 {/* Actions */}
                 <div className="flex gap-2">
+                  <DocumentPreview
+                    title={material.title}
+                    fileUrl={material.file_url}
+                    type={material.type}
+                  >
+                    <Button
+                      variant="outline"
+                      className="flex-1 border-blue-200 text-blue-700 hover:bg-blue-50"
+                    >
+                      <Eye className="h-4 w-4 mr-2" />
+                      Vorschau
+                    </Button>
+                  </DocumentPreview>
+                  
                   <Button
-                    onClick={() => window.open(material.file_url, "_blank")}
+                    onClick={() => {
+                      const link = document.createElement('a')
+                      link.href = material.file_url
+                      link.download = material.title
+                      link.click()
+                    }}
                     className="flex-1 bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white"
                   >
                     <Download className="h-4 w-4 mr-2" />
                     Download
-                  </Button>
-                  <Button variant="outline" onClick={() => window.open(material.file_url, "_blank")} className="px-3">
-                    <ExternalLink className="h-4 w-4" />
                   </Button>
                 </div>
 
