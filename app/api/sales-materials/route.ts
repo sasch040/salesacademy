@@ -112,7 +112,7 @@ export async function GET(request: NextRequest) {
   }
 }
 
-// Hilfsfunktionen
+// 📦 Hilfsfunktionen
 function formatFileSize(bytes: number): string {
   if (!bytes) return "0 MB"
   const mb = bytes / (1024 * 1024)
