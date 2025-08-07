@@ -335,7 +335,7 @@ export default function Dashboard() {
                   </p>
                 </div>
                 <div className="flex-shrink-0">
-                  <Link href="/sales-materials">
+                  <Link href="/sales-materials" className="block">
                     <Button className="bg-gradient-to-r from-indigo-500 to-indigo-600 hover:from-indigo-600 hover:to-indigo-700 text-white px-8 py-3 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 flex items-center gap-3 text-lg font-semibold">
                       <span>📄 Materials öffnen</span>
                       <ChevronRight className="h-5 w-5" />
