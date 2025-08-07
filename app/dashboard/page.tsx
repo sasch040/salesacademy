@@ -321,30 +321,30 @@ export default function Dashboard() {
           </div>
 
           {/* Sales Materials Section */}
-          <div className="flex justify-center">
-            <Card className="bg-gradient-to-br from-indigo-50 to-indigo-100 border-2 border-indigo-200 shadow-xl max-w-md w-full">
-              <CardContent className="p-8">
-                <div className="flex items-center gap-4 mb-4">
-                  <div className="w-12 h-12 bg-gradient-to-br from-indigo-500 to-indigo-600 rounded-2xl flex items-center justify-center shadow-lg">
-                    <BookOpen className="h-6 w-6 text-white" />
-                  </div>
-                  <div>
-                    <h4 className="text-xl font-bold text-slate-800">Sales Materials</h4>
-                    <p className="text-sm text-slate-600">Zugriff auf alle Verkaufsunterlagen und Ressourcen</p>
-                  </div>
+          <Card className="bg-gradient-to-br from-indigo-50 to-indigo-100 border-2 border-indigo-200 shadow-xl w-full">
+            <CardContent className="p-8">
+              <div className="flex flex-col md:flex-row items-start md:items-center gap-6">
+                <div className="w-16 h-16 bg-gradient-to-br from-indigo-500 to-indigo-600 rounded-2xl flex items-center justify-center shadow-lg flex-shrink-0">
+                  <BookOpen className="h-8 w-8 text-white" />
                 </div>
-                <p className="text-slate-600 mb-4 font-light">
-                  Entdecken Sie unsere umfangreiche Sammlung von Sales Materials, Präsentationen und Verkaufstools.
-                </p>
-                <Link href="/sales-materials">
-                  <Button className="bg-gradient-to-r from-indigo-500 to-indigo-600 hover:from-indigo-600 hover:to-indigo-700 text-white px-6 py-2 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 flex items-center gap-2">
-                    <span>📄 Materials öffnen</span>
-                    <ChevronRight className="h-4 w-4" />
-                  </Button>
-                </Link>
-              </CardContent>
-            </Card>
-          </div>
+                <div className="flex-1">
+                  <h4 className="text-2xl font-bold text-slate-800 mb-2">Sales Materials</h4>
+                  <p className="text-slate-600 mb-4 font-light">
+                    Entdecken Sie unsere umfangreiche Sammlung von Sales Materials, Präsentationen und Verkaufstools. 
+                    Zugriff auf alle professionellen Verkaufsunterlagen und Ressourcen für Ihren Erfolg.
+                  </p>
+                </div>
+                <div className="flex-shrink-0">
+                  <Link href="/sales-materials">
+                    <Button className="bg-gradient-to-r from-indigo-500 to-indigo-600 hover:from-indigo-600 hover:to-indigo-700 text-white px-8 py-3 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 flex items-center gap-3 text-lg font-semibold">
+                      <span>📄 Materials öffnen</span>
+                      <ChevronRight className="h-5 w-5" />
+                    </Button>
+                  </Link>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
         </main>
       </div>
   )
