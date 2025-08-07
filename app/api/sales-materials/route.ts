@@ -33,6 +33,7 @@ export async function GET(request: NextRequest) {
     const data = await response.json()
     console.log("📦 Materials count:", data.data?.length || 0)
 
+    // 🧱 Gruppieren nach Produkt
     const groupedByProduct: Record<string, any> = {}
 
     if (data.data && Array.isArray(data.data)) {
@@ -56,15 +57,22 @@ export async function GET(request: NextRequest) {
             logo: productAttributes.logo?.data?.attributes?.url
               ? `${STRAPI_URL}${productAttributes.logo.data.attributes.url}`
               : productAttributes.logo?.url
-                ? `${STRAPI_URL}${productAttributes.logo.url}`
-                : `/images/product-${productId}-logo.png`,
+              ? `${STRAPI_URL}${productAttributes.logo.url}`
+              : `/images/product-${productId}-logo.png`,
             gradient: productAttributes.gradient || "from-slate-500 to-slate-600",
             materials: [],
           }
         }
 
+        // 📎 Datei-Handling
         const fileData = itemAttributes.file?.data || itemAttributes.file
         const fileAttributes = fileData?.attributes || fileData
+
+        const fileUrl = fileAttributes?.url
+          ? fileAttributes.url.startsWith("http")
+            ? fileAttributes.url
+            : `${STRAPI_URL}${fileAttributes.url}`
+          : null
 
         groupedByProduct[productId].materials.push({
           id: item.id,
@@ -72,17 +80,18 @@ export async function GET(request: NextRequest) {
           description: itemAttributes.description,
           type: itemAttributes.type,
           category: itemAttributes.category,
-          fileUrl: fileAttributes?.url ? `${STRAPI_URL}${fileAttributes.url}` : "/placeholder.svg",
+          fileUrl: fileUrl,
           fileSize: formatFileSize(fileAttributes?.size || 0),
           language: itemAttributes.language || "de",
           lastUpdated: formatDate(itemAttributes.updatedAt || item.updatedAt),
-          tags: Array.isArray(itemAttributes.tags) ? itemAttributes.tags : [], // ✅ Wichtig!
+          tags: Array.isArray(itemAttributes.tags) ? itemAttributes.tags : [],
         })
-      }) // ✅ <- HIER war die Klammer vorher **nicht** da
+      })
     }
 
     console.log("✅ Processed products:", Object.keys(groupedByProduct).length)
 
+    // 🔁 Flach machen für das Frontend
     const flatMaterials = Object.values(groupedByProduct).flatMap((product: any) =>
       product.materials.map((material: any) => ({
         ...material,
@@ -93,6 +102,7 @@ export async function GET(request: NextRequest) {
       }))
     )
 
+    console.log("📦 Final response size:", flatMaterials.length)
     return NextResponse.json(flatMaterials)
   } catch (error) {
     console.error("💥 Fallback wegen Fehler:", error)
