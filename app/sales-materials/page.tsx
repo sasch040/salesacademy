@@ -321,7 +321,7 @@ const [isAuthenticated, setIsAuthenticated] = useState(false)
                   )}
                 </div>
 
-                {/* Actions */}
+                {/* Actions - HIER IST DER VORSCHAU-CODE */}
                 <div className="flex gap-2">
                   <DocumentPreview
                     title={material.title}
