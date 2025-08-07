@@ -1,9 +1,7 @@
 import { type NextRequest, NextResponse } from "next/server"
 
 const STRAPI_URL = "https://strapi-elearning-8rff.onrender.com"
-const STRAPI_TOKEN =
-  process.env.STRAPI_API_TOKEN ||
-  "992949dd37394d8faa798febe2bcd19c61aaa07c1b30873b4fe6cc4c6dce0db003fee18d71e12ec0ac5af64c61ffca2b4069eff02d5f3bfbe744a4dd6eab540a53479d68375cf0a3f2ee4231c245e5d1b09ae58356ef2744a3757bc3ca01a6189fe687cd06517aaa3b1e91a28f8a943a1c97abe4958ded8d7e99b376d8203277"
+const STRAPI_TOKEN = process.env.STRAPI_API_TOKEN || "DEIN_TOKEN_HIER"
 
 export async function GET(request: NextRequest) {
   try {
@@ -16,9 +14,8 @@ export async function GET(request: NextRequest) {
       throw new Error("STRAPI_API_TOKEN environment variable is not set")
     }
 
-    // 🎯 DIREKTE SALES MATERIALS API ABFRAGE
     const salesMaterialsUrl = `${STRAPI_URL}/api/sales-materials?populate=*`
-    console.log("📡 Making request to Sales Materials API:", salesMaterialsUrl)
+    console.log("📡 Fetching from:", salesMaterialsUrl)
 
     const response = await fetch(salesMaterialsUrl, {
       headers: {
@@ -29,80 +26,62 @@ export async function GET(request: NextRequest) {
 
     if (!response.ok) {
       const errorText = await response.text()
-      console.error("💥 Sales Materials API error:", response.status, response.statusText, errorText)
+      console.error("💥 API error:", response.status, response.statusText, errorText)
       throw new Error(`Strapi returned ${response.status}: ${response.statusText}`)
     }
 
-    const data = await response.json()
-    console.log("📊 Raw Strapi Sales Materials Response:")
-    console.log("📊 Sales Materials count:", data.data?.length || 0)
+    const { data } = await response.json()
+    console.log("📊 Sales Materials fetched:", data?.length || 0)
 
-    // 🎯 TRANSFORMATION DER SALES MATERIALS
-    const groupedByProduct: Record<string, any> = {}
+    // 🎯 FLACHES ARRAY (statt gruppiert nach Produkt)
+    const materials = data.map((item: any) => {
+      const itemAttributes = item.attributes || item
+      const product = itemAttributes.product?.data || itemAttributes.product
+      const productAttributes = product?.attributes || product || {}
 
-    if (data.data && Array.isArray(data.data)) {
-      data.data.forEach((item: any) => {
-        const itemAttributes = item.attributes || item
-        const product = itemAttributes.product?.data || itemAttributes.product
+      const file = itemAttributes.file?.data || itemAttributes.file
+      const fileAttributes = file?.attributes || file || {}
 
-        if (!product) {
-          console.warn("⚠️ Sales material without product reference:", item.id)
-          return
-        }
+      return {
+        id: item.id,
+        title: itemAttributes.title,
+        description: itemAttributes.description,
+        type: itemAttributes.type,
+        category: itemAttributes.category,
+        fileUrl: fileAttributes.url?.startsWith("http")
+          ? fileAttributes.url
+          : fileAttributes.url
+          ? `${STRAPI_URL}${fileAttributes.url}`
+          : null,
+        fileSize: formatFileSize(fileAttributes?.size || 0),
+        language: itemAttributes.language || "de",
+        lastUpdated: formatDate(itemAttributes.updatedAt || item.updatedAt),
+        tags: Array.isArray(itemAttributes.tags) ? itemAttributes.tags : [],
+        productId: product?.id || null,
+        productTitle: productAttributes.titel || productAttributes.name || "Produkt",
+        productLogo: productAttributes.logo?.data?.attributes?.url
+          ? `${STRAPI_URL}${productAttributes.logo.data.attributes.url}`
+          : productAttributes.logo?.url
+          ? `${STRAPI_URL}${productAttributes.logo.url}`
+          : null,
+        gradient: productAttributes.gradient || "from-slate-500 to-slate-600",
+      }
+    })
 
-        const productAttributes = product.attributes || product
-        const productId = product.id || "unknown"
-        const productName = productAttributes.name || productAttributes.title || `Product ${productId}`
-
-        if (!groupedByProduct[productId]) {
-          groupedByProduct[productId] = {
-            id: productId,
-            title: productName,
-            logo: productAttributes.logo?.data?.attributes?.url
-              ? `${STRAPI_URL}${productAttributes.logo.data.attributes.url}`
-              : productAttributes.logo?.url
-                ? `${STRAPI_URL}${productAttributes.logo.url}`
-                : `/images/product-${productId}-logo.png`,
-            gradient: productAttributes.gradient || "from-slate-500 to-slate-600",
-            materials: [],
-          }
-        }
-
-        // File handling
-        const fileData = itemAttributes.file?.data || itemAttributes.file
-        const fileAttributes = fileData?.attributes || fileData
-
-        groupedByProduct[productId].materials.push({
-          id: item.id,
-          title: itemAttributes.title,
-          description: itemAttributes.description,
-          type: itemAttributes.type,
-          category: itemAttributes.category,
-          fileUrl: fileAttributes?.url ? `${STRAPI_URL}${fileAttributes.url}` : "/placeholder.svg",
-          fileSize: formatFileSize(fileAttributes?.size || 0),
-          language: itemAttributes.language || "de",
-          lastUpdated: formatDate(itemAttributes.updatedAt || item.updatedAt),
-        })
-      })
-    }
-
-    console.log("✅ Sales materials processed:", Object.keys(groupedByProduct).length, "products")
-    console.log("📋 Products with materials:", Object.keys(groupedByProduct))
-
-    return NextResponse.json(groupedByProduct)
+    console.log("✅ Materials ready for frontend:", materials.length)
+    return NextResponse.json(materials)
   } catch (error) {
     console.error("💥 Sales Materials API error:", error)
 
-    // Fallback zu lokalen Daten
     const { getSalesMaterialsData } = await import("@/lib/sales-materials-data")
     const fallbackData = await getSalesMaterialsData()
 
-    console.log("🔄 Using fallback sales materials data")
+    console.log("🔄 Using fallback data")
     return NextResponse.json(fallbackData)
   }
 }
 
-// Hilfsfunktionen
+// 📦 Hilfsfunktionen
 function formatFileSize(bytes: number): string {
   if (!bytes) return "0 MB"
   const mb = bytes / (1024 * 1024)
