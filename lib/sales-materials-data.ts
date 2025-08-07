@@ -5,12 +5,16 @@ export interface SalesMaterial {
   title: string
   description: string
   type: string
-  file_url: string
+  fileUrl: string
   thumbnail: string
   category: string
   tags: string[]
   created_at: string
   updated_at: string
+  productId?: string
+  productTitle?: string
+  productLogo?: string
+  gradient?: string
 }
 
 export interface SalesMaterialsResponse {
@@ -29,98 +33,135 @@ export const mockSalesMaterials: SalesMaterial[] = [
     title: "Smart Lens Produktbroschüre",
     description: "Detaillierte Übersicht über alle Smart Lens Features und Anwendungsbereiche",
     type: "PDF",
-    file_url: "/files/smart-lens-brochure.pdf",
+    fileUrl: "/files/smart-lens-brochure.pdf",
     thumbnail: "/images/smart-lens-clean.png",
     category: "Produktinformation",
     tags: ["smart-lens", "broschüre", "features", "produktinfo"],
     created_at: "2024-01-15T10:00:00Z",
     updated_at: "2024-01-15T10:00:00Z",
+    productId: "1",
+    productTitle: "Smart Lens",
+    productLogo: "/images/smart-lens-logo.png",
+    gradient: "from-blue-500 to-blue-600"
   },
   {
     id: 2,
     title: "Smart Nexus ROI Calculator",
     description: "Excel-Tool zur Berechnung des Return on Investment für Smart Nexus Implementierungen",
     type: "Excel",
-    file_url: "/files/nexus-roi-calculator.xlsx",
+    fileUrl: "/files/nexus-roi-calculator.xlsx",
     thumbnail: "/images/smart-nexus-clean.png",
     category: "Tools",
     tags: ["smart-nexus", "roi", "calculator", "excel", "investment"],
     created_at: "2024-01-20T14:30:00Z",
     updated_at: "2024-01-20T14:30:00Z",
+    productId: "2",
+    productTitle: "Smart Nexus",
+    productLogo: "/images/smart-nexus-logo.png",
+    gradient: "from-green-500 to-green-600"
   },
   {
     id: 3,
     title: "Hacktracks Demo Video",
     description: "Umfassende Demonstration aller Hacktracks Funktionen und Sicherheitsfeatures",
     type: "Video",
-    file_url: "/videos/hacktracks-demo.mp4",
+    fileUrl: "/videos/hacktracks-demo.mp4",
     thumbnail: "/images/hacktracks-clean.png",
     category: "Demo",
     tags: ["hacktracks", "demo", "video", "security", "features"],
     created_at: "2024-02-01T09:15:00Z",
     updated_at: "2024-02-01T09:15:00Z",
+    productId: "3",
+    productTitle: "Hacktracks",
+    productLogo: "/images/hacktracks-logo.png",
+    gradient: "from-red-500 to-red-600"
   },
   {
     id: 4,
     title: "Sales Presentation Template",
     description: "Professionelle PowerPoint-Vorlage für Verkaufspräsentationen mit allen Produkten",
     type: "PowerPoint",
-    file_url: "/files/sales-template.pptx",
+    fileUrl: "/files/sales-template.pptx",
     thumbnail: "/images/sales-academy-new-logo.png",
     category: "Template",
     tags: ["sales", "presentation", "template", "powerpoint", "verkauf"],
     created_at: "2024-02-05T16:45:00Z",
     updated_at: "2024-02-05T16:45:00Z",
+    productId: "4",
+    productTitle: "Sales Academy",
+    productLogo: "/images/sales-academy-logo.png",
+    gradient: "from-purple-500 to-purple-600"
   },
   {
     id: 5,
     title: "Competitive Analysis Report",
     description: "Detaillierte Wettbewerbsanalyse mit Vergleichstabellen und Marktpositionierung",
     type: "PDF",
-    file_url: "/files/competitive-analysis.pdf",
+    fileUrl: "/files/competitive-analysis.pdf",
     thumbnail: "/placeholder.svg?height=200&width=300&text=Analysis",
     category: "Marktanalyse",
     tags: ["wettbewerb", "analyse", "markt", "positioning", "vergleich"],
     created_at: "2024-02-10T11:20:00Z",
     updated_at: "2024-02-10T11:20:00Z",
+    productId: "1",
+    productTitle: "Smart Lens",
+    productLogo: "/images/smart-lens-logo.png",
+    gradient: "from-blue-500 to-blue-600"
   },
   {
     id: 6,
     title: "Customer Success Stories",
     description: "Sammlung von Kundenreferenzen und Erfolgsgeschichten aus verschiedenen Branchen",
     type: "PDF",
-    file_url: "/files/customer-stories.pdf",
+    fileUrl: "/files/customer-stories.pdf",
     thumbnail: "/placeholder.svg?height=200&width=300&text=Success",
     category: "Referenzen",
     tags: ["kunden", "erfolg", "referenzen", "case-studies", "testimonials"],
     created_at: "2024-02-15T13:10:00Z",
     updated_at: "2024-02-15T13:10:00Z",
+    productId: "2",
+    productTitle: "Smart Nexus",
+    productLogo: "/images/smart-nexus-logo.png",
+    gradient: "from-green-500 to-green-600"
   },
   {
     id: 7,
     title: "Product Comparison Matrix",
     description: "Übersichtliche Matrix zum Vergleich aller Produktfeatures und -varianten",
     type: "Excel",
-    file_url: "/files/product-comparison.xlsx",
+    fileUrl: "/files/product-comparison.xlsx",
     thumbnail: "/placeholder.svg?height=200&width=300&text=Matrix",
     category: "Produktvergleich",
     tags: ["produkte", "vergleich", "matrix", "features", "übersicht"],
     created_at: "2024-02-20T08:30:00Z",
     updated_at: "2024-02-20T08:30:00Z",
+    productId: "3",
+    productTitle: "Hacktracks",
+    productLogo: "/images/hacktracks-logo.png",
+    gradient: "from-red-500 to-red-600"
   },
   {
     id: 8,
     title: "Implementation Roadmap",
     description: "Schritt-für-Schritt Implementierungsplan für alle Produktlösungen",
     type: "PowerPoint",
-    file_url: "/files/implementation-roadmap.pptx",
+    fileUrl: "/files/implementation-roadmap.pptx",
     thumbnail: "/placeholder.svg?height=200&width=300&text=Roadmap",
     category: "Implementation",
     tags: ["implementierung", "roadmap", "planung", "schritte", "timeline"],
     created_at: "2024-02-25T15:00:00Z",
     updated_at: "2024-02-25T15:00:00Z",
+    productId: "4",
+    productTitle: "Sales Academy",
+    productLogo: "/images/sales-academy-logo.png",
+    gradient: "from-purple-500 to-purple-600"
   },
 ]
+
+// Helper function to get fallback data
+export async function getSalesMaterialsData(): Promise<SalesMaterial[]> {
+  return mockSalesMaterials
+}
 
 // Helper functions
 export function getSalesMaterialsByCategory(materials: SalesMaterial[], category: string): SalesMaterial[] {
@@ -131,6 +172,11 @@ export function getSalesMaterialsByCategory(materials: SalesMaterial[], category
 export function getSalesMaterialsByType(materials: SalesMaterial[], type: string): SalesMaterial[] {
   if (type === "all") return materials
   return materials.filter((material) => material.type.toLowerCase() === type.toLowerCase())
+}
+
+export function getSalesMaterialsByProduct(materials: SalesMaterial[], productId: string): SalesMaterial[] {
+  if (productId === "all") return materials
+  return materials.filter((material) => material.productId === productId)
 }
 
 export function searchSalesMaterials(materials: SalesMaterial[], searchTerm: string): SalesMaterial[] {
@@ -151,6 +197,18 @@ export function getUniqueCategories(materials: SalesMaterial[]): string[] {
 
 export function getUniqueTypes(materials: SalesMaterial[]): string[] {
   return Array.from(new Set(materials.map((material) => material.type)))
+}
+
+export function getUniqueProducts(materials: SalesMaterial[]): Array<{id: string, title: string}> {
+  const products = materials
+    .filter(material => material.productId && material.productTitle)
+    .map(material => ({ id: material.productId!, title: material.productTitle! }))
+  
+  const uniqueProducts = Array.from(
+    new Map(products.map(product => [product.id, product])).values()
+  )
+  
+  return uniqueProducts
 }
 
 export function formatFileSize(bytes: number): string {

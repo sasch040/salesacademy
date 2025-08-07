@@ -7,8 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { DocumentPreview } from "@/components/ui/document-preview"
-import { ArrowLeft, Search, Download, FileText, Video, ImageIcon, Presentation, Filter, ExternalLink, Eye } from 'lucide-react'
+import { ArrowLeft, Search, Download, FileText, Video, ImageIcon, Presentation, Filter } from 'lucide-react'
 import Link from "next/link"
 import Image from "next/image"
 
@@ -17,7 +16,7 @@ interface SalesMaterial {
   title: string
   description: string
   type: string
-  file_url: string
+  fileUrl: string
   thumbnail: string
   category: string
   tags: string[]
@@ -36,9 +35,10 @@ export default function SalesMaterialsPage() {
   const [searchTerm, setSearchTerm] = useState("")
   const [selectedCategory, setSelectedCategory] = useState<string>("all")
   const [selectedType, setSelectedType] = useState<string>("all")
+  const [selectedProduct, setSelectedProduct] = useState<string>("all")
   const router = useRouter()
 
-const [isAuthenticated, setIsAuthenticated] = useState(false)
+  const [isAuthenticated, setIsAuthenticated] = useState(false)
 
   useEffect(() => {
     const checkAuth = async () => {
@@ -88,7 +88,6 @@ const [isAuthenticated, setIsAuthenticated] = useState(false)
     }
   }
 
-
   const getTypeIcon = (type: string) => {
     switch (type.toLowerCase()) {
       case "pdf":
@@ -129,12 +128,14 @@ const [isAuthenticated, setIsAuthenticated] = useState(false)
 
     const matchesCategory = selectedCategory === "all" || material.category === selectedCategory
     const matchesType = selectedType === "all" || material.type.toLowerCase() === selectedType.toLowerCase()
+    const matchesProduct = selectedProduct === "all" || material.productId === selectedProduct
 
-    return matchesSearch && matchesCategory && matchesType
+    return matchesSearch && matchesCategory && matchesType && matchesProduct
   })
 
   const categories = Array.from(new Set(materials.map((m) => m.category)))
   const types = Array.from(new Set(materials.map((m) => m.type)))
+  const products = Array.from(new Set(materials.map((m) => ({ id: m.productId, title: m.productTitle })).filter(p => p.id && p.title)))
 
   if (loading) {
     return (
@@ -207,7 +208,7 @@ const [isAuthenticated, setIsAuthenticated] = useState(false)
         {/* Filters */}
         <Card className="mb-8 bg-white/70 backdrop-blur-sm border-0 shadow-lg">
           <CardContent className="p-6">
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400 h-4 w-4" />
                 <Input
@@ -217,6 +218,20 @@ const [isAuthenticated, setIsAuthenticated] = useState(false)
                   className="pl-10"
                 />
               </div>
+
+              <Select value={selectedProduct} onValueChange={setSelectedProduct}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Produkt" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Alle Produkte</SelectItem>
+                  {products.map((product) => (
+                    <SelectItem key={product.id} value={product.id || ""}>
+                      {product.title}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
 
               <Select value={selectedCategory} onValueChange={setSelectedCategory}>
                 <SelectTrigger>
@@ -253,6 +268,7 @@ const [isAuthenticated, setIsAuthenticated] = useState(false)
                   setSearchTerm("")
                   setSelectedCategory("all")
                   setSelectedType("all")
+                  setSelectedProduct("all")
                 }}
               >
                 <Filter className="h-4 w-4" />
@@ -289,6 +305,25 @@ const [isAuthenticated, setIsAuthenticated] = useState(false)
                   </Badge>
                 </div>
 
+                {/* Product Info */}
+                {material.productTitle && (
+                  <div className="flex items-center gap-2 mb-3 p-2 bg-slate-50 rounded-lg">
+                    {material.productLogo && (
+                      <Image
+                        src={material.productLogo || "/placeholder.svg"}
+                        alt={material.productTitle}
+                        width={24}
+                        height={24}
+                        className="w-6 h-6 object-contain"
+                        onError={(e) => {
+                          e.currentTarget.style.display = "none"
+                        }}
+                      />
+                    )}
+                    <span className="text-sm font-medium text-slate-700">{material.productTitle}</span>
+                  </div>
+                )}
+
                 <div className="aspect-video bg-slate-100 rounded-lg overflow-hidden mb-4">
                   <Image
                     src={material.thumbnail || "/placeholder.svg?height=200&width=300&text=Preview"}
@@ -321,30 +356,19 @@ const [isAuthenticated, setIsAuthenticated] = useState(false)
                   )}
                 </div>
 
-                {/* Actions - HIER IST DER VORSCHAU-CODE */}
+                {/* Actions */}
                 <div className="flex gap-2">
-                  <DocumentPreview
-                    title={material.title}
-                    fileUrl={material.file_url}
-                    type={material.type}
-                  >
-                    <Button
-                      variant="outline"
-                      className="flex-1 border-blue-200 text-blue-700 hover:bg-blue-50"
-                    >
-                      <Eye className="h-4 w-4 mr-2" />
-                      Vorschau
-                    </Button>
-                  </DocumentPreview>
-                  
                   <Button
                     onClick={() => {
-                      const link = document.createElement('a')
-                      link.href = material.file_url
-                      link.download = material.title
-                      link.click()
+                      if (material.fileUrl) {
+                        const link = document.createElement('a')
+                        link.href = material.fileUrl
+                        link.download = material.title
+                        link.click()
+                      }
                     }}
-                    className="flex-1 bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white"
+                    className="w-full bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white"
+                    disabled={!material.fileUrl}
                   >
                     <Download className="h-4 w-4 mr-2" />
                     Download
@@ -375,6 +399,7 @@ const [isAuthenticated, setIsAuthenticated] = useState(false)
                 setSearchTerm("")
                 setSelectedCategory("all")
                 setSelectedType("all")
+                setSelectedProduct("all")
               }}
               variant="outline"
             >
