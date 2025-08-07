@@ -6,18 +6,7 @@ import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import {
-  BookOpen,
-  Clock,
-  Award,
-  TrendingUp,
-  Target,
-  ChevronRight,
-  Play,
-  CheckCircle,
-  BarChart3,
-  LogOut,
-} from "lucide-react"
+import { BookOpen, Clock, Award, TrendingUp, Target, ChevronRight, Play, CheckCircle, BarChart3, LogOut } from 'lucide-react'
 import Link from "next/link"
 import Image from "next/image"
 import { useAuth } from "@/contexts/AuthContext"
@@ -245,11 +234,7 @@ export default function Dashboard() {
                 <h3 className="text-2xl font-bold text-slate-800 mb-2">Verfügbare Kurse</h3>
                 <p className="text-slate-600 font-light">Wählen Sie einen Kurs aus, um mit dem Lernen zu beginnen</p>
               </div>
-              <Link href="/sales-materials">
-                <Button className="bg-gradient-to-r from-slate-600 to-slate-700 hover:from-slate-700 hover:to-slate-800 text-white px-6 py-2 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300">
-                  📄 Sales Materials
-                </Button>
-              </Link>
+              
             </div>
 
             {products.length === 0 ? (
@@ -335,39 +320,51 @@ export default function Dashboard() {
             )}
           </div>
 
-          {/* Quick Actions */}
+          {/* Sales Materials Section */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-            <Card className="bg-gradient-to-br from-blue-50 to-blue-100 border-2 border-blue-200 shadow-xl">
+            <Card className="bg-gradient-to-br from-indigo-50 to-indigo-100 border-2 border-indigo-200 shadow-xl">
               <CardContent className="p-8">
                 <div className="flex items-center gap-4 mb-4">
-                  <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-blue-600 rounded-2xl flex items-center justify-center shadow-lg">
-                    <Target className="h-6 w-6 text-white" />
+                  <div className="w-12 h-12 bg-gradient-to-br from-indigo-500 to-indigo-600 rounded-2xl flex items-center justify-center shadow-lg">
+                    <BookOpen className="h-6 w-6 text-white" />
                   </div>
                   <div>
-                    <h4 className="text-xl font-bold text-slate-800">Lernziele setzen</h4>
-                    <p className="text-sm text-slate-600">Definieren Sie Ihre persönlichen Lernziele</p>
+                    <h4 className="text-xl font-bold text-slate-800">Sales Materials</h4>
+                    <p className="text-sm text-slate-600">Zugriff auf alle Verkaufsunterlagen und Ressourcen</p>
                   </div>
                 </div>
-                <Button className="bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white px-6 py-2 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300">
-                  Ziele definieren
-                </Button>
+                <p className="text-slate-600 mb-4 font-light">
+                  Entdecken Sie unsere umfangreiche Sammlung von Sales Materials, Präsentationen und Verkaufstools.
+                </p>
+                <Link href="/sales-materials">
+                  <Button className="bg-gradient-to-r from-indigo-500 to-indigo-600 hover:from-indigo-600 hover:to-indigo-700 text-white px-6 py-2 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 flex items-center gap-2">
+                    <span>📄 Materials öffnen</span>
+                    <ChevronRight className="h-4 w-4" />
+                  </Button>
+                </Link>
               </CardContent>
             </Card>
 
-            <Card className="bg-gradient-to-br from-green-50 to-green-100 border-2 border-green-200 shadow-xl">
+            <Card className="bg-gradient-to-br from-purple-50 to-purple-100 border-2 border-purple-200 shadow-xl">
               <CardContent className="p-8">
                 <div className="flex items-center gap-4 mb-4">
-                  <div className="w-12 h-12 bg-gradient-to-br from-green-500 to-green-600 rounded-2xl flex items-center justify-center shadow-lg">
-                    <BarChart3 className="h-6 w-6 text-white" />
+                  <div className="w-12 h-12 bg-gradient-to-br from-purple-500 to-purple-600 rounded-2xl flex items-center justify-center shadow-lg">
+                    <TrendingUp className="h-6 w-6 text-white" />
                   </div>
                   <div>
-                    <h4 className="text-xl font-bold text-slate-800">Fortschritt verfolgen</h4>
-                    <p className="text-sm text-slate-600">Sehen Sie Ihre Lernstatistiken ein</p>
+                    <h4 className="text-xl font-bold text-slate-800">Verkaufsressourcen</h4>
+                    <p className="text-sm text-slate-600">Professionelle Tools für Ihren Verkaufserfolg</p>
                   </div>
                 </div>
-                <Button className="bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white px-6 py-2 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300">
-                  Statistiken ansehen
-                </Button>
+                <p className="text-slate-600 mb-4 font-light">
+                  Nutzen Sie unsere bewährten Verkaufsstrategien, Templates und Leitfäden für maximalen Erfolg.
+                </p>
+                <Link href="/sales-materials">
+                  <Button className="bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 text-white px-6 py-2 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 flex items-center gap-2">
+                    <span>🚀 Ressourcen nutzen</span>
+                    <ChevronRight className="h-4 w-4" />
+                  </Button>
+                </Link>
               </CardContent>
             </Card>
           </div>
