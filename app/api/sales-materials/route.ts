@@ -33,7 +33,7 @@ export async function GET(request: NextRequest) {
     const data = await response.json()
     console.log("📦 Materials count:", data.data?.length || 0)
 
-    // 🧱 Gruppieren nach Produkt
+    // 🧱 Gruppieren nach Produkttitel (nicht ID!)
     const groupedByProduct: Record<string, any> = {}
 
     if (data.data && Array.isArray(data.data)) {
@@ -47,18 +47,16 @@ export async function GET(request: NextRequest) {
         }
 
         const productAttributes = product.attributes || product
-        const productId = product.id || "unknown"
-        const productName = productAttributes.name || productAttributes.title || `Product ${productId}`
+        const productTitle = productAttributes.titel || productAttributes.title || `Produkt ${product.id || "?"}`
 
-        if (!groupedByProduct[productId]) {
-          groupedByProduct[productId] = {
-            id: productId,
-            title: productName,
+        if (!groupedByProduct[productTitle]) {
+          groupedByProduct[productTitle] = {
+            title: productTitle,
             logo: productAttributes.logo?.data?.attributes?.url
               ? `${STRAPI_URL}${productAttributes.logo.data.attributes.url}`
               : productAttributes.logo?.url
               ? `${STRAPI_URL}${productAttributes.logo.url}`
-              : `/images/product-${productId}-logo.png`,
+              : `/images/product-${product.id}-logo.png`,
             gradient: productAttributes.gradient || "from-slate-500 to-slate-600",
             materials: [],
           }
@@ -74,7 +72,7 @@ export async function GET(request: NextRequest) {
             : `${STRAPI_URL}${fileAttributes.url}`
           : null
 
-        groupedByProduct[productId].materials.push({
+        groupedByProduct[productTitle].materials.push({
           id: item.id,
           title: itemAttributes.title,
           description: itemAttributes.description,
@@ -92,11 +90,10 @@ export async function GET(request: NextRequest) {
     console.log("✅ Processed products:", Object.keys(groupedByProduct).length)
 
     // 🔁 Flach machen für das Frontend
-    const flatMaterials = Object.values(groupedByProduct).flatMap((product: any) =>
+    const flatMaterials = Object.entries(groupedByProduct).flatMap(([productTitle, product]) =>
       product.materials.map((material: any) => ({
         ...material,
-        productId: product.id,
-        productTitle: product.title,
+        productTitle,
         productLogo: product.logo,
         gradient: product.gradient,
       }))
