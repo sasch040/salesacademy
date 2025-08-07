@@ -1,9 +1,7 @@
 import { type NextRequest, NextResponse } from "next/server"
 
 const STRAPI_URL = "https://strapi-elearning-8rff.onrender.com"
-const STRAPI_TOKEN =
-  process.env.STRAPI_API_TOKEN ||
-  "992949dd37394d8faa798febe2bcd19c61aaa07c1b30873b4fe6cc4c6dce0db003fee18d71e12ec0ac5af64c61ffca2b4069eff02d5f3bfbe744a4dd6eab540a53479d68375cf0a3f2ee4231c245e5d1b09ae58356ef2744a3757bc3ca01a6189fe687cd06517aaa3b1e91a28f8a943a1c97abe4958ded8d7e99b376d8203277"
+const STRAPI_TOKEN = process.env.STRAPI_API_TOKEN || "<dein fallback token>"
 
 export async function GET(request: NextRequest) {
   try {
@@ -16,9 +14,8 @@ export async function GET(request: NextRequest) {
       throw new Error("STRAPI_API_TOKEN environment variable is not set")
     }
 
-    // 🎯 DIREKTE SALES MATERIALS API ABFRAGE
     const salesMaterialsUrl = `${STRAPI_URL}/api/sales-materials?populate=*`
-    console.log("📡 Making request to Sales Materials API:", salesMaterialsUrl)
+    console.log("📡 Request to:", salesMaterialsUrl)
 
     const response = await fetch(salesMaterialsUrl, {
       headers: {
@@ -29,15 +26,13 @@ export async function GET(request: NextRequest) {
 
     if (!response.ok) {
       const errorText = await response.text()
-      console.error("💥 Sales Materials API error:", response.status, response.statusText, errorText)
+      console.error("💥 API Error:", response.status, response.statusText, errorText)
       throw new Error(`Strapi returned ${response.status}: ${response.statusText}`)
     }
 
     const data = await response.json()
-    console.log("📊 Raw Strapi Sales Materials Response:")
-    console.log("📊 Sales Materials count:", data.data?.length || 0)
+    console.log("📦 Materials count:", data.data?.length || 0)
 
-    // 🎯 TRANSFORMATION DER SALES MATERIALS
     const groupedByProduct: Record<string, any> = {}
 
     if (data.data && Array.isArray(data.data)) {
@@ -46,7 +41,7 @@ export async function GET(request: NextRequest) {
         const product = itemAttributes.product?.data || itemAttributes.product
 
         if (!product) {
-          console.warn("⚠️ Sales material without product reference:", item.id)
+          console.warn("⚠️ Material without product:", item.id)
           return
         }
 
@@ -68,7 +63,6 @@ export async function GET(request: NextRequest) {
           }
         }
 
-        // File handling
         const fileData = itemAttributes.file?.data || itemAttributes.file
         const fileAttributes = fileData?.attributes || fileData
 
@@ -82,14 +76,13 @@ export async function GET(request: NextRequest) {
           fileSize: formatFileSize(fileAttributes?.size || 0),
           language: itemAttributes.language || "de",
           lastUpdated: formatDate(itemAttributes.updatedAt || item.updatedAt),
+          tags: Array.isArray(itemAttributes.tags) ? itemAttributes.tags : [], // ✅ Wichtig!
         })
-      })
+      }) // ✅ <- HIER war die Klammer vorher **nicht** da
     }
 
-    console.log("✅ Sales materials processed:", Object.keys(groupedByProduct).length, "products")
-    console.log("📋 Products with materials:", Object.keys(groupedByProduct))
+    console.log("✅ Processed products:", Object.keys(groupedByProduct).length)
 
-        // Flaches Array für das Frontend erstellen
     const flatMaterials = Object.values(groupedByProduct).flatMap((product: any) =>
       product.materials.map((material: any) => ({
         ...material,
@@ -99,18 +92,15 @@ export async function GET(request: NextRequest) {
         gradient: product.gradient,
       }))
     )
-    
-    console.log("✅ Returning flat materials:", flatMaterials.length)
-    return NextResponse.json(flatMaterials)
-    
-  } catch (error) {
-    console.error("💥 Sales Materials API error:", error)
 
-    // Fallback zu lokalen Daten
+    return NextResponse.json(flatMaterials)
+  } catch (error) {
+    console.error("💥 Fallback wegen Fehler:", error)
+
     const { getSalesMaterialsData } = await import("@/lib/sales-materials-data")
     const fallbackData = await getSalesMaterialsData()
 
-    console.log("🔄 Using fallback sales materials data")
+    console.log("🔄 Using fallback data")
     return NextResponse.json(fallbackData)
   }
 }
