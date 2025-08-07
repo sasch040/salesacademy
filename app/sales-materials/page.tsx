@@ -7,17 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import {
-  ArrowLeft,
-  Search,
-  Download,
-  FileText,
-  Video,
-  ImageIcon,
-  Presentation,
-  Filter,
-  ExternalLink,
-} from "lucide-react"
+import { ArrowLeft, Search, Download, FileText, Video, ImageIcon, Presentation, Filter, ExternalLink } from 'lucide-react'
 import Link from "next/link"
 import Image from "next/image"
 
