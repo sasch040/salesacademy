@@ -8,9 +8,9 @@ import Image from "next/image"
 
 export default function HomePage() {
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100">
-      {/* Hero Section */}
-      <section className="relative overflow-hidden">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 flex flex-col">
+      {/* Hero Section - takes up most of the screen */}
+      <section className="relative overflow-hidden flex-1 flex items-center justify-center">
         <div className="max-w-7xl mx-auto px-6 py-24">
           <div className="text-center">
             <div className="mb-8">
@@ -58,8 +58,8 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* Footer */}
-      <footer className="bg-slate-900 text-white py-6">
+      {/* Footer - stays at bottom */}
+      <footer className="bg-slate-900 text-white py-6 mt-auto">
         <div className="max-w-7xl mx-auto px-6">
           <div className="flex flex-col md:flex-row justify-between items-center">
             <div className="flex items-center gap-3 mb-4 md:mb-0">
