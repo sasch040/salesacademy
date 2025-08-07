@@ -10,8 +10,8 @@ export default function HomePage() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100">
       {/* Hero Section */}
-      <section className="relative overflow-hidden">
-        <div className="max-w-7xl mx-auto px-6 py-24">
+      <section className="relative overflow-hidden min-h-[80vh] flex items-center">
+        <div className="max-w-7xl mx-auto px-6 pt-16 pb-24">
           <div className="text-center">
             <div className="mb-8">
               <Image
