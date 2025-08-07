@@ -6,18 +6,7 @@ import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import {
-  BookOpen,
-  Clock,
-  Award,
-  TrendingUp,
-  Target,
-  ChevronRight,
-  Play,
-  CheckCircle,
-  BarChart3,
-  LogOut,
-} from "lucide-react"
+import { BookOpen, Clock, Award, TrendingUp, ChevronRight, Play, CheckCircle, LogOut, FileText, Briefcase } from 'lucide-react'
 import Link from "next/link"
 import Image from "next/image"
 import { useAuth } from "@/contexts/AuthContext"
@@ -128,7 +117,7 @@ export default function Dashboard() {
   }
 
   return (
-    
+    <ProtectedRoute>
       <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100">
         {/* Header */}
         <header className="backdrop-blur-sm bg-white/80 border-b border-slate-200/60 sticky top-0 z-50">
@@ -245,11 +234,6 @@ export default function Dashboard() {
                 <h3 className="text-2xl font-bold text-slate-800 mb-2">Verfügbare Kurse</h3>
                 <p className="text-slate-600 font-light">Wählen Sie einen Kurs aus, um mit dem Lernen zu beginnen</p>
               </div>
-              <Link href="/sales-materials">
-                <Button className="bg-gradient-to-r from-slate-600 to-slate-700 hover:from-slate-700 hover:to-slate-800 text-white px-6 py-2 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300">
-                  📄 Sales Materials
-                </Button>
-              </Link>
             </div>
 
             {products.length === 0 ? (
@@ -267,9 +251,8 @@ export default function Dashboard() {
                     <CardContent className="p-8">
                       <div className="flex items-center gap-4 mb-6">
                         <div className="w-16 h-16 flex items-center justify-center">
-                          {/* 2. IMAGE COMPONENT - Verwendung des Logos */}
                           <Image
-                            src={product.logo || "/placeholder.svg"} // Logo aus API oder Fallback
+                            src={product.logo || "/placeholder.svg"}
                             alt={product.title}
                             width={64}
                             height={64}
@@ -277,7 +260,6 @@ export default function Dashboard() {
                             onError={(e) => {
                               console.warn(`⚠️ Product logo failed to load for ${product.title}:`, product.logo)
                               console.log("🔄 Using placeholder for product:", product.title)
-                              // Fallback bei Fehler
                               e.currentTarget.src = `/placeholder.svg?height=64&width=64&text=${encodeURIComponent(product.title)}`
                             }}
                           />
@@ -335,43 +317,56 @@ export default function Dashboard() {
             )}
           </div>
 
-          {/* Quick Actions */}
+          {/* Sales Materials Section */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-            <Card className="bg-gradient-to-br from-blue-50 to-blue-100 border-2 border-blue-200 shadow-xl">
+            <Card className="bg-gradient-to-br from-indigo-50 to-indigo-100 border-2 border-indigo-200 shadow-xl hover:shadow-2xl transition-all duration-300 group cursor-pointer">
               <CardContent className="p-8">
-                <div className="flex items-center gap-4 mb-4">
-                  <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-blue-600 rounded-2xl flex items-center justify-center shadow-lg">
-                    <Target className="h-6 w-6 text-white" />
+                <Link href="/sales-materials" className="block">
+                  <div className="flex items-center gap-4 mb-4">
+                    <div className="w-12 h-12 bg-gradient-to-br from-indigo-500 to-indigo-600 rounded-2xl flex items-center justify-center shadow-lg">
+                      <FileText className="h-6 w-6 text-white" />
+                    </div>
+                    <div className="flex-1">
+                      <h4 className="text-xl font-bold text-slate-800">Sales Materials</h4>
+                      <p className="text-sm text-slate-600">Zugriff auf alle Verkaufsunterlagen und Ressourcen</p>
+                    </div>
+                    <ChevronRight className="h-5 w-5 text-slate-400 group-hover:translate-x-1 transition-transform" />
                   </div>
-                  <div>
-                    <h4 className="text-xl font-bold text-slate-800">Lernziele setzen</h4>
-                    <p className="text-sm text-slate-600">Definieren Sie Ihre persönlichen Lernziele</p>
+                  <p className="text-slate-600 mb-4 font-light">
+                    Entdecken Sie unsere umfangreiche Sammlung von Sales Materials, Präsentationen und Verkaufstools.
+                  </p>
+                  <div className="flex items-center gap-2 text-indigo-600 font-medium">
+                    <span>📄 Materials öffnen</span>
                   </div>
-                </div>
-                <Button className="bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white px-6 py-2 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300">
-                  Ziele definieren
-                </Button>
+                </Link>
               </CardContent>
             </Card>
 
-            <Card className="bg-gradient-to-br from-green-50 to-green-100 border-2 border-green-200 shadow-xl">
+            <Card className="bg-gradient-to-br from-purple-50 to-purple-100 border-2 border-purple-200 shadow-xl hover:shadow-2xl transition-all duration-300 group cursor-pointer">
               <CardContent className="p-8">
-                <div className="flex items-center gap-4 mb-4">
-                  <div className="w-12 h-12 bg-gradient-to-br from-green-500 to-green-600 rounded-2xl flex items-center justify-center shadow-lg">
-                    <BarChart3 className="h-6 w-6 text-white" />
+                <Link href="/sales-materials" className="block">
+                  <div className="flex items-center gap-4 mb-4">
+                    <div className="w-12 h-12 bg-gradient-to-br from-purple-500 to-purple-600 rounded-2xl flex items-center justify-center shadow-lg">
+                      <Briefcase className="h-6 w-6 text-white" />
+                    </div>
+                    <div className="flex-1">
+                      <h4 className="text-xl font-bold text-slate-800">Verkaufsressourcen</h4>
+                      <p className="text-sm text-slate-600">Professionelle Tools für Ihren Verkaufserfolg</p>
+                    </div>
+                    <ChevronRight className="h-5 w-5 text-slate-400 group-hover:translate-x-1 transition-transform" />
                   </div>
-                  <div>
-                    <h4 className="text-xl font-bold text-slate-800">Fortschritt verfolgen</h4>
-                    <p className="text-sm text-slate-600">Sehen Sie Ihre Lernstatistiken ein</p>
+                  <p className="text-slate-600 mb-4 font-light">
+                    Nutzen Sie unsere bewährten Verkaufsstrategien, Templates und Leitfäden für maximalen Erfolg.
+                  </p>
+                  <div className="flex items-center gap-2 text-purple-600 font-medium">
+                    <span>🚀 Ressourcen nutzen</span>
                   </div>
-                </div>
-                <Button className="bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white px-6 py-2 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300">
-                  Statistiken ansehen
-                </Button>
+                </Link>
               </CardContent>
             </Card>
           </div>
         </main>
       </div>
+    </ProtectedRoute>
   )
 }
