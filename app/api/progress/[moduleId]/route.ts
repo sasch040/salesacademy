@@ -59,7 +59,7 @@ export async function POST(req: NextRequest, { params }: { params: { moduleId: s
   return NextResponse.json(result)
 }
 
-// Fortschritt PUT: bestehenden Eintrag aktualisieren
+// Fortschritt PUT: bestehenden Eintrag aktualisieren oder neuen erstellen
 export async function PUT(req: NextRequest, { params }: { params: { moduleId: string } }) {
   const body = await req.json()
   const { email, completed, quizCompleted, videoWatched } = body
@@ -81,24 +81,43 @@ export async function PUT(req: NextRequest, { params }: { params: { moduleId: st
   const existing = await findRes.json()
   const existingId = existing?.data?.[0]?.id
 
-  if (!existingId) return NextResponse.json({ error: "Kein Fortschritt vorhanden" }, { status: 404 })
-
-  // Update durchführen
-  const updateRes = await fetch(`${STRAPI_URL}/api/module-progresses/${existingId}`, {
-    method: "PUT",
-    headers: {
-      Authorization: `Bearer ${STRAPI_TOKEN}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      data: {
-        completed,
-        quizCompleted,
-        videoWatched,
+  if (!existingId) {
+    // Kein Eintrag -> POST
+    const createRes = await fetch(`${STRAPI_URL}/api/module-progresses`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${STRAPI_TOKEN}`,
+        "Content-Type": "application/json",
       },
-    }),
-  })
-
-  const result = await updateRes.json()
-  return NextResponse.json(result)
+      body: JSON.stringify({
+        data: {
+          module: params.moduleId,
+          users_permissions_user: user.id,
+          completed,
+          quizCompleted,
+          videoWatched,
+        },
+      }),
+    })
+    const created = await createRes.json()
+    return NextResponse.json(created)
+  } else {
+    // Eintrag vorhanden -> PUT
+    const updateRes = await fetch(`${STRAPI_URL}/api/module-progresses/${existingId}`, {
+      method: "PUT",
+      headers: {
+        Authorization: `Bearer ${STRAPI_TOKEN}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        data: {
+          completed,
+          quizCompleted,
+          videoWatched,
+        },
+      }),
+    })
+    const updated = await updateRes.json()
+    return NextResponse.json(updated)
+  }
 }
