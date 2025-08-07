@@ -134,6 +134,8 @@ export default function SalesMaterialsPage() {
   })
 
   const products = Array.from(new Set(materials.map((m) => m.productTitle).filter(Boolean)))
+  const categories = Array.from(new Set(materials.map((m) => m.category)))
+  const types = Array.from(new Set(materials.map((m) => m.type)))
 
   if (loading) {
     return (
@@ -349,10 +351,7 @@ export default function SalesMaterialsPage() {
                         const link = document.createElement('a')
                         link.href = material.fileUrl
                         link.download = material.title
-                        link.target = '_blank'
-                        document.body.appendChild(link)
                         link.click()
-                        document.body.removeChild(link)
                       }
                     }}
                     className="w-full bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white"
