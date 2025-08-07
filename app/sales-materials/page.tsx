@@ -22,6 +22,10 @@ interface SalesMaterial {
   tags: string[]
   created_at: string
   updated_at: string
+  productId?: string
+  productTitle?: string
+  productLogo?: string
+  gradient?: string
 }
 
 export default function SalesMaterialsPage() {
