@@ -1,31 +1,104 @@
-// app/api/progress/[moduleId]/route.ts
-
 import { NextRequest, NextResponse } from "next/server"
-import { API_URL } from "@/lib/auth"
 
-export async function PUT(req: NextRequest, { params }: { params: { moduleId: string } }) {
-  const token = req.headers.get("authorization")?.replace("Bearer ", "")
-  if (!token) {
-    return NextResponse.json({ error: "Kein Token vorhanden" }, { status: 401 })
-  }
+const STRAPI_URL = process.env.NEXT_PUBLIC_STRAPI_URL!
+const STRAPI_TOKEN = process.env.STRAPI_API_TOKEN!
 
-  const updates = await req.json()
+// Fortschritt GET: hole für Modul + User
+export async function GET(req: NextRequest, { params }: { params: { moduleId: string } }) {
+  const email = req.nextUrl.searchParams.get("email")
+  if (!email) return NextResponse.json({ error: "E-Mail fehlt" }, { status: 400 })
 
-  try {
-    const strapiRes = await fetch(`${API_URL}/api/module-progress/${params.moduleId}`, {
-      method: "PUT",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
+  // User holen
+  const userRes = await fetch(`${STRAPI_URL}/api/users?filters[email][$eq]=${email}`,
+    { headers: { Authorization: `Bearer ${STRAPI_TOKEN}` } })
+  const users = await userRes.json()
+  const user = users[0]
+  if (!user) return NextResponse.json({ error: "User nicht gefunden" }, { status: 404 })
+
+  // Modulfortschritt holen
+  const progressRes = await fetch(
+    `${STRAPI_URL}/api/module-progresses?filters[users_permissions_user][id][$eq]=${user.id}&filters[module][id][$eq]=${params.moduleId}&populate=*`,
+    { headers: { Authorization: `Bearer ${STRAPI_TOKEN}` } }
+  )
+  const progress = await progressRes.json()
+  return NextResponse.json(progress.data?.[0] || null)
+}
+
+// Fortschritt POST: neuen Eintrag anlegen
+export async function POST(req: NextRequest, { params }: { params: { moduleId: string } }) {
+  const body = await req.json()
+  const { email, completed, quizCompleted, videoWatched } = body
+  if (!email) return NextResponse.json({ error: "E-Mail fehlt" }, { status: 400 })
+
+  // User holen
+  const userRes = await fetch(`${STRAPI_URL}/api/users?filters[email][$eq]=${email}`,
+    { headers: { Authorization: `Bearer ${STRAPI_TOKEN}` } })
+  const users = await userRes.json()
+  const user = users[0]
+  if (!user) return NextResponse.json({ error: "User nicht gefunden" }, { status: 404 })
+
+  // Fortschritt anlegen
+  const createRes = await fetch(`${STRAPI_URL}/api/module-progresses`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${STRAPI_TOKEN}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      data: {
+        module: params.moduleId,
+        users_permissions_user: user.id,
+        completed,
+        quizCompleted,
+        videoWatched,
       },
-      body: JSON.stringify({ data: updates }),
-    })
+    }),
+  })
 
-    const updated = await strapiRes.json()
+  const result = await createRes.json()
+  return NextResponse.json(result)
+}
 
-    return NextResponse.json(updated)
-  } catch (err) {
-    console.error("Fehler beim Updaten des Modul-Fortschritts:", err)
-    return NextResponse.json({ error: "Update fehlgeschlagen" }, { status: 500 })
-  }
+// Fortschritt PUT: bestehenden Eintrag aktualisieren
+export async function PUT(req: NextRequest, { params }: { params: { moduleId: string } }) {
+  const body = await req.json()
+  const { email, completed, quizCompleted, videoWatched } = body
+
+  if (!email) return NextResponse.json({ error: "E-Mail fehlt" }, { status: 400 })
+
+  // User holen
+  const userRes = await fetch(`${STRAPI_URL}/api/users?filters[email][$eq]=${email}`,
+    { headers: { Authorization: `Bearer ${STRAPI_TOKEN}` } })
+  const users = await userRes.json()
+  const user = users[0]
+  if (!user) return NextResponse.json({ error: "User nicht gefunden" }, { status: 404 })
+
+  // Fortschritt-Eintrag finden
+  const findRes = await fetch(
+    `${STRAPI_URL}/api/module-progresses?filters[users_permissions_user][id][$eq]=${user.id}&filters[module][id][$eq]=${params.moduleId}`,
+    { headers: { Authorization: `Bearer ${STRAPI_TOKEN}` } }
+  )
+  const existing = await findRes.json()
+  const existingId = existing?.data?.[0]?.id
+
+  if (!existingId) return NextResponse.json({ error: "Kein Fortschritt vorhanden" }, { status: 404 })
+
+  // Update durchführen
+  const updateRes = await fetch(`${STRAPI_URL}/api/module-progresses/${existingId}`, {
+    method: "PUT",
+    headers: {
+      Authorization: `Bearer ${STRAPI_TOKEN}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      data: {
+        completed,
+        quizCompleted,
+        videoWatched,
+      },
+    }),
+  })
+
+  const result = await updateRes.json()
+  return NextResponse.json(result)
 }
