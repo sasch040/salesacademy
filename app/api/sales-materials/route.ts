@@ -89,7 +89,20 @@ export async function GET(request: NextRequest) {
     console.log("✅ Sales materials processed:", Object.keys(groupedByProduct).length, "products")
     console.log("📋 Products with materials:", Object.keys(groupedByProduct))
 
-    return NextResponse.json(groupedByProduct)
+        // Flaches Array für das Frontend erstellen
+    const flatMaterials = Object.values(groupedByProduct).flatMap((product: any) =>
+      product.materials.map((material: any) => ({
+        ...material,
+        productId: product.id,
+        productTitle: product.title,
+        productLogo: product.logo,
+        gradient: product.gradient,
+      }))
+    )
+    
+    console.log("✅ Returning flat materials:", flatMaterials.length)
+    return NextResponse.json(flatMaterials)
+    
   } catch (error) {
     console.error("💥 Sales Materials API error:", error)
 
