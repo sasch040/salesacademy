@@ -128,14 +128,12 @@ export default function SalesMaterialsPage() {
 
     const matchesCategory = selectedCategory === "all" || material.category === selectedCategory
     const matchesType = selectedType === "all" || material.type.toLowerCase() === selectedType.toLowerCase()
-    const matchesProduct = selectedProduct === "all" || material.productId === selectedProduct
+    const matchesProduct = selectedProduct === "all" || material.productTitle === selectedProduct
 
     return matchesSearch && matchesCategory && matchesType && matchesProduct
   })
 
-  const categories = Array.from(new Set(materials.map((m) => m.category)))
-  const types = Array.from(new Set(materials.map((m) => m.type)))
-  const products = Array.from(new Set(materials.map((m) => ({ id: m.productId, title: m.productTitle })).filter(p => p.id && p.title)))
+  const products = Array.from(new Set(materials.map((m) => m.productTitle).filter(Boolean)))
 
   if (loading) {
     return (
@@ -225,9 +223,9 @@ export default function SalesMaterialsPage() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">Alle Produkte</SelectItem>
-                  {products.map((product) => (
-                    <SelectItem key={product.id} value={product.id || ""}>
-                      {product.title}
+                  {products.map((productTitle) => (
+                    <SelectItem key={productTitle} value={productTitle}>
+                      {productTitle}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -324,19 +322,6 @@ export default function SalesMaterialsPage() {
                   </div>
                 )}
 
-                <div className="aspect-video bg-slate-100 rounded-lg overflow-hidden mb-4">
-                  <Image
-                    src={material.thumbnail || "/placeholder.svg?height=200&width=300&text=Preview"}
-                    alt={material.title}
-                    width={300}
-                    height={200}
-                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                    onError={(e) => {
-                      e.currentTarget.src = "/placeholder.svg?height=200&width=300&text=Preview"
-                    }}
-                  />
-                </div>
-
                 <CardTitle className="text-lg font-bold text-slate-800 line-clamp-2">{material.title}</CardTitle>
                 <CardDescription className="text-slate-600 line-clamp-3">{material.description}</CardDescription>
               </CardHeader>
@@ -364,7 +349,10 @@ export default function SalesMaterialsPage() {
                         const link = document.createElement('a')
                         link.href = material.fileUrl
                         link.download = material.title
+                        link.target = '_blank'
+                        document.body.appendChild(link)
                         link.click()
+                        document.body.removeChild(link)
                       }
                     }}
                     className="w-full bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white"
