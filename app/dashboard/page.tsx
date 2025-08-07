@@ -321,8 +321,8 @@ export default function Dashboard() {
           </div>
 
           {/* Sales Materials Section */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-            <Card className="bg-gradient-to-br from-indigo-50 to-indigo-100 border-2 border-indigo-200 shadow-xl">
+          <div className="flex justify-center">
+            <Card className="bg-gradient-to-br from-indigo-50 to-indigo-100 border-2 border-indigo-200 shadow-xl max-w-md w-full">
               <CardContent className="p-8">
                 <div className="flex items-center gap-4 mb-4">
                   <div className="w-12 h-12 bg-gradient-to-br from-indigo-500 to-indigo-600 rounded-2xl flex items-center justify-center shadow-lg">
@@ -339,29 +339,6 @@ export default function Dashboard() {
                 <Link href="/sales-materials">
                   <Button className="bg-gradient-to-r from-indigo-500 to-indigo-600 hover:from-indigo-600 hover:to-indigo-700 text-white px-6 py-2 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 flex items-center gap-2">
                     <span>📄 Materials öffnen</span>
-                    <ChevronRight className="h-4 w-4" />
-                  </Button>
-                </Link>
-              </CardContent>
-            </Card>
-
-            <Card className="bg-gradient-to-br from-purple-50 to-purple-100 border-2 border-purple-200 shadow-xl">
-              <CardContent className="p-8">
-                <div className="flex items-center gap-4 mb-4">
-                  <div className="w-12 h-12 bg-gradient-to-br from-purple-500 to-purple-600 rounded-2xl flex items-center justify-center shadow-lg">
-                    <TrendingUp className="h-6 w-6 text-white" />
-                  </div>
-                  <div>
-                    <h4 className="text-xl font-bold text-slate-800">Verkaufsressourcen</h4>
-                    <p className="text-sm text-slate-600">Professionelle Tools für Ihren Verkaufserfolg</p>
-                  </div>
-                </div>
-                <p className="text-slate-600 mb-4 font-light">
-                  Nutzen Sie unsere bewährten Verkaufsstrategien, Templates und Leitfäden für maximalen Erfolg.
-                </p>
-                <Link href="/sales-materials">
-                  <Button className="bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 text-white px-6 py-2 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 flex items-center gap-2">
-                    <span>🚀 Ressourcen nutzen</span>
                     <ChevronRight className="h-4 w-4" />
                   </Button>
                 </Link>
