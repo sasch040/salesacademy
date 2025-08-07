@@ -7,17 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import {
-  ArrowLeft,
-  Search,
-  Download,
-  FileText,
-  Video,
-  ImageIcon,
-  Presentation,
-  Filter,
-  ExternalLink,
-} from "lucide-react"
+import { ArrowLeft, Search, Download, FileText, Video, ImageIcon, Presentation, Filter, ExternalLink } from 'lucide-react'
 import Link from "next/link"
 import Image from "next/image"
 
@@ -35,6 +25,7 @@ interface SalesMaterial {
 }
 
 export default function SalesMaterialsPage() {
+  const [materialsData, setMaterialsData] = useState<any>({})
   const [materials, setMaterials] = useState<SalesMaterial[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -85,9 +76,36 @@ const [isAuthenticated, setIsAuthenticated] = useState(false)
       }
 
       const data = await response.json()
-      setMaterials(data)
+      setMaterialsData(data)
+    
+      // Flatten the grouped data into an array
+      const flattenedMaterials: SalesMaterial[] = []
+      Object.values(data).forEach((product: any) => {
+        if (product.materials && Array.isArray(product.materials)) {
+          product.materials.forEach((material: any) => {
+            flattenedMaterials.push({
+              id: material.id,
+              title: material.title,
+              description: material.description,
+              type: material.type,
+              file_url: material.fileUrl,
+              thumbnail: `/images/${product.title.toLowerCase().replace(/\s+/g, '-')}-clean.png`,
+              category: material.category,
+              tags: [product.title.toLowerCase(), material.type.toLowerCase()],
+              created_at: material.lastUpdated,
+              updated_at: material.lastUpdated,
+            })
+          })
+        }
+      })
+    
+      setMaterials(flattenedMaterials)
     } catch (err) {
       setError(err instanceof Error ? err.message : "An error occurred")
+    
+      // Fallback to mock data
+      const { mockSalesMaterials } = await import("@/lib/sales-materials-data")
+      setMaterials(mockSalesMaterials)
     } finally {
       setLoading(false)
     }
