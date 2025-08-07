@@ -1,128 +1,116 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { useRouter } from "next/navigation"
+import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { ArrowLeft, Search, Download, FileText, Video, ImageIcon, Presentation, Filter, ExternalLink } from 'lucide-react'
+import { Search, Download, Eye, FileText, ImageIcon, Video, ArrowLeft, Filter, Grid, List, Calendar, Tag, ExternalLink } from 'lucide-react'
 import Link from "next/link"
 import Image from "next/image"
+import { salesMaterialsData } from "@/lib/sales-materials-data"
 
 interface SalesMaterial {
   id: number
   title: string
   description: string
   type: string
-  file_url: string
-  thumbnail: string
   category: string
-  tags: string[]
-  created_at: string
-  updated_at: string
+  fileUrl: string
+  thumbnailUrl?: string
+  createdAt: string
+  updatedAt: string
+  fileSize?: string
+  product?: {
+    title: string
+    logo?: string
+  }
 }
 
 export default function SalesMaterialsPage() {
-  const [materialsData, setMaterialsData] = useState<any>({})
   const [materials, setMaterials] = useState<SalesMaterial[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [searchTerm, setSearchTerm] = useState("")
-  const [selectedCategory, setSelectedCategory] = useState<string>("all")
-  const [selectedType, setSelectedType] = useState<string>("all")
-  const router = useRouter()
-
-const [isAuthenticated, setIsAuthenticated] = useState(false)
+  const [selectedCategory, setSelectedCategory] = useState("all")
+  const [selectedType, setSelectedType] = useState("all")
+  const [viewMode, setViewMode] = useState<"grid" | "list">("grid")
 
   useEffect(() => {
-    const checkAuth = async () => {
+    const loadSalesMaterials = async () => {
       try {
-        const res = await fetch("/api/auth/me", {
-          method: "GET",
-          credentials: "include",
+        setLoading(true)
+        console.log("🚀 === SALES MATERIALS: Loading materials ===")
+
+        const response = await fetch("/api/sales-materials", {
+          headers: {
+            "Content-Type": "application/json",
+          },
         })
 
-        if (!res.ok) {
-          router.push("/auth/login")
-          return
-        }
+        if (response.ok) {
+          const data = await response.json()
+          console.log("✅ Sales Materials API Data Received:", data)
 
-        const data = await res.json()
-        console.log("✅ Authentifizierter User:", data.user)
-        setIsAuthenticated(true)
+          // Handle both grouped and flat array responses
+          let materialsArray: SalesMaterial[] = []
+          
+          if (data.materials) {
+            if (Array.isArray(data.materials)) {
+              // If materials is already an array
+              materialsArray = data.materials
+            } else if (typeof data.materials === 'object') {
+              // If materials is grouped by product, flatten it
+              materialsArray = Object.values(data.materials).flat() as SalesMaterial[]
+            }
+          }
+
+          console.log("📦 Materials Count:", materialsArray.length)
+          setMaterials(materialsArray)
+        } else {
+          console.warn("⚠️ API failed, using fallback data")
+          // Use fallback data if API fails
+          const fallbackMaterials = Object.values(salesMaterialsData).flat()
+          setMaterials(fallbackMaterials)
+        }
       } catch (err) {
-        console.error("Fehler bei Auth-Check:", err)
-        router.push("/auth/login")
+        console.error("💥 Sales Materials loading error:", err)
+        console.log("🔄 Using fallback data")
+        // Use fallback data on error
+        const fallbackMaterials = Object.values(salesMaterialsData).flat()
+        setMaterials(fallbackMaterials)
+      } finally {
+        setLoading(false)
       }
     }
 
-    checkAuth()
-  }, [router])
-
-  useEffect(() => {
-    if (!isAuthenticated) return
     loadSalesMaterials()
-  }, [isAuthenticated])
+  }, [])
 
-  const loadSalesMaterials = async () => {
-    try {
-      setLoading(true)
-      const response = await fetch("/api/sales-materials")
-
-      if (!response.ok) {
-        throw new Error("Failed to load sales materials")
-      }
-
-      const data = await response.json()
-      setMaterialsData(data)
+  // Filter materials based on search and filters
+  const filteredMaterials = materials.filter((material) => {
+    const matchesSearch = material.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         material.description.toLowerCase().includes(searchTerm.toLowerCase())
+    const matchesCategory = selectedCategory === "all" || material.category === selectedCategory
+    const matchesType = selectedType === "all" || material.type === selectedType
     
-      // Flatten the grouped data into an array
-      const flattenedMaterials: SalesMaterial[] = []
-      Object.values(data).forEach((product: any) => {
-        if (product.materials && Array.isArray(product.materials)) {
-          product.materials.forEach((material: any) => {
-            flattenedMaterials.push({
-              id: material.id,
-              title: material.title,
-              description: material.description,
-              type: material.type,
-              file_url: material.fileUrl,
-              thumbnail: `/images/${product.title.toLowerCase().replace(/\s+/g, '-')}-clean.png`,
-              category: material.category,
-              tags: [product.title.toLowerCase(), material.type.toLowerCase()],
-              created_at: material.lastUpdated,
-              updated_at: material.lastUpdated,
-            })
-          })
-        }
-      })
-    
-      setMaterials(flattenedMaterials)
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "An error occurred")
-    
-      // Fallback to mock data
-      const { mockSalesMaterials } = await import("@/lib/sales-materials-data")
-      setMaterials(mockSalesMaterials)
-    } finally {
-      setLoading(false)
-    }
-  }
+    return matchesSearch && matchesCategory && matchesType
+  })
 
+  // Get unique categories and types for filters
+  const categories = Array.from(new Set(materials.map(m => m.category)))
+  const types = Array.from(new Set(materials.map(m => m.type)))
 
-  const getTypeIcon = (type: string) => {
+  const getFileIcon = (type: string) => {
     switch (type.toLowerCase()) {
-      case "pdf":
+      case 'pdf':
+      case 'document':
         return <FileText className="h-5 w-5" />
-      case "video":
-        return <Video className="h-5 w-5" />
-      case "image":
+      case 'image':
         return <ImageIcon className="h-5 w-5" />
-      case "powerpoint":
-      case "presentation":
-        return <Presentation className="h-5 w-5" />
+      case 'video':
+        return <Video className="h-5 w-5" />
       default:
         return <FileText className="h-5 w-5" />
     }
@@ -130,61 +118,25 @@ const [isAuthenticated, setIsAuthenticated] = useState(false)
 
   const getTypeColor = (type: string) => {
     switch (type.toLowerCase()) {
-      case "pdf":
-        return "bg-red-100 text-red-800 border-red-200"
-      case "video":
-        return "bg-blue-100 text-blue-800 border-blue-200"
-      case "image":
-        return "bg-green-100 text-green-800 border-green-200"
-      case "powerpoint":
-      case "presentation":
-        return "bg-orange-100 text-orange-800 border-orange-200"
+      case 'pdf':
+      case 'document':
+        return 'bg-red-100 text-red-800'
+      case 'image':
+        return 'bg-green-100 text-green-800'
+      case 'video':
+        return 'bg-blue-100 text-blue-800'
       default:
-        return "bg-gray-100 text-gray-800 border-gray-200"
+        return 'bg-gray-100 text-gray-800'
     }
   }
-
-  const filteredMaterials = materials.filter((material) => {
-    const matchesSearch =
-      material.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      material.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      material.tags.some((tag) => tag.toLowerCase().includes(searchTerm.toLowerCase()))
-
-    const matchesCategory = selectedCategory === "all" || material.category === selectedCategory
-    const matchesType = selectedType === "all" || material.type.toLowerCase() === selectedType.toLowerCase()
-
-    return matchesSearch && matchesCategory && matchesType
-  })
-
-  const categories = Array.from(new Set(materials.map((m) => m.category)))
-  const types = Array.from(new Set(materials.map((m) => m.type)))
 
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 flex items-center justify-center">
         <div className="text-center">
-          <div className="w-16 h-16 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <div className="w-16 h-16 border-4 border-purple-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
           <p className="text-slate-600">Sales Materials werden geladen...</p>
         </div>
-      </div>
-    )
-  }
-
-  if (error) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 flex items-center justify-center">
-        <Card className="max-w-md">
-          <CardContent className="p-8 text-center">
-            <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
-              <span className="text-2xl">❌</span>
-            </div>
-            <h3 className="text-xl font-bold text-slate-800 mb-2">Fehler</h3>
-            <p className="text-slate-600 mb-6">{error}</p>
-            <Link href="/dashboard">
-              <Button>Zurück zum Dashboard</Button>
-            </Link>
-          </CardContent>
-        </Card>
       </div>
     )
   }
@@ -193,192 +145,185 @@ const [isAuthenticated, setIsAuthenticated] = useState(false)
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100">
       {/* Header */}
       <header className="backdrop-blur-sm bg-white/80 border-b border-slate-200/60 sticky top-0 z-50">
-        <div className="max-w-7xl mx-auto px-6 py-4 flex items-center gap-4">
-          <Link href="/dashboard">
-            <Button variant="ghost" size="sm" className="flex items-center gap-2 hover:bg-slate-100">
-              <ArrowLeft className="h-4 w-4" />
-              Zurück zum Dashboard
-            </Button>
-          </Link>
-          <div className="w-px h-6 bg-slate-300 mx-2"></div>
-          <div className="flex items-center gap-2">
-            <Image
-              src="/images/sales-academy-logo.png"
-              alt="Sales Academy"
-              width={150}
-              height={45}
-              className="h-6 w-auto drop-shadow-lg"
-              onError={(e) => {
-                e.currentTarget.style.display = "none"
-              }}
-            />
-            <span className="text-sm font-bold text-slate-800">Sales Materials</span>
+        <div className="max-w-7xl mx-auto px-6 py-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <Link href="/dashboard">
+                <Button variant="outline" size="sm" className="flex items-center gap-2">
+                  <ArrowLeft className="h-4 w-4" />
+                  Zurück zum Dashboard
+                </Button>
+              </Link>
+              <div>
+                <h1 className="text-2xl font-bold text-slate-800">Sales Materials</h1>
+                <p className="text-sm text-slate-600">Verkaufsunterlagen und Ressourcen</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              <Button
+                variant={viewMode === "grid" ? "default" : "outline"}
+                size="sm"
+                onClick={() => setViewMode("grid")}
+              >
+                <Grid className="h-4 w-4" />
+              </Button>
+              <Button
+                variant={viewMode === "list" ? "default" : "outline"}
+                size="sm"
+                onClick={() => setViewMode("list")}
+              >
+                <List className="h-4 w-4" />
+              </Button>
+            </div>
           </div>
         </div>
       </header>
 
       {/* Main Content */}
-      <main className="max-w-7xl mx-auto px-6 py-12">
-        {/* Page Header */}
-        <div className="mb-12">
-          <h1 className="text-4xl font-bold text-slate-800 mb-4">Sales Materials</h1>
-          <p className="text-xl text-slate-600 font-light">
-            Entdecken Sie unsere umfangreiche Sammlung von Verkaufsunterlagen und Marketing-Materialien
-          </p>
-        </div>
-
-        {/* Filters */}
-        <Card className="mb-8 bg-white/70 backdrop-blur-sm border-0 shadow-lg">
-          <CardContent className="p-6">
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+      <main className="max-w-7xl mx-auto px-6 py-8">
+        {/* Search and Filters */}
+        <div className="mb-8">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div className="md:col-span-2">
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400 h-4 w-4" />
                 <Input
-                  placeholder="Suchen..."
+                  placeholder="Nach Materials suchen..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   className="pl-10"
                 />
               </div>
-
-              <Select value={selectedCategory} onValueChange={setSelectedCategory}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Kategorie" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Alle Kategorien</SelectItem>
-                  {categories.map((category) => (
-                    <SelectItem key={category} value={category}>
-                      {category}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-
-              <Select value={selectedType} onValueChange={setSelectedType}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Dateityp" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Alle Typen</SelectItem>
-                  {types.map((type) => (
-                    <SelectItem key={type} value={type}>
-                      {type}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-
-              <Button variant="outline" className="flex items-center gap-2 bg-transparent">
-                <Filter className="h-4 w-4" />
-                Filter zurücksetzen
-              </Button>
             </div>
-          </CardContent>
-        </Card>
+            <Select value={selectedCategory} onValueChange={setSelectedCategory}>
+              <SelectTrigger>
+                <SelectValue placeholder="Kategorie" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Alle Kategorien</SelectItem>
+                {categories.map((category) => (
+                  <SelectItem key={category} value={category}>
+                    {category}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Select value={selectedType} onValueChange={setSelectedType}>
+              <SelectTrigger>
+                <SelectValue placeholder="Dateityp" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Alle Typen</SelectItem>
+                {types.map((type) => (
+                  <SelectItem key={type} value={type}>
+                    {type}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
 
-        {/* Results Count */}
+        {/* Results Summary */}
         <div className="mb-6">
           <p className="text-slate-600">
-            {filteredMaterials.length} von {materials.length} Materialien gefunden
+            {filteredMaterials.length} von {materials.length} Materials gefunden
           </p>
         </div>
 
-        {/* Materials Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {filteredMaterials.map((material) => (
-            <Card
-              key={material.id}
-              className="bg-white/70 backdrop-blur-sm border-0 shadow-lg hover:shadow-xl transition-all duration-300 group"
-            >
-              <CardHeader className="pb-4">
-                <div className="flex items-start justify-between mb-3">
-                  <div className="flex items-center gap-2">
-                    <div className={`p-2 rounded-lg ${getTypeColor(material.type)}`}>{getTypeIcon(material.type)}</div>
-                    <Badge variant="outline" className={getTypeColor(material.type)}>
-                      {material.type}
-                    </Badge>
-                  </div>
-                  <Badge variant="secondary" className="text-xs">
-                    {material.category}
-                  </Badge>
-                </div>
-
-                <div className="aspect-video bg-slate-100 rounded-lg overflow-hidden mb-4">
-                  <Image
-                    src={material.thumbnail || "/placeholder.svg?height=200&width=300&text=Preview"}
-                    alt={material.title}
-                    width={300}
-                    height={200}
-                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                    onError={(e) => {
-                      e.currentTarget.src = "/placeholder.svg?height=200&width=300&text=Preview"
-                    }}
-                  />
-                </div>
-
-                <CardTitle className="text-lg font-bold text-slate-800 line-clamp-2">{material.title}</CardTitle>
-                <CardDescription className="text-slate-600 line-clamp-3">{material.description}</CardDescription>
-              </CardHeader>
-
-              <CardContent className="pt-0">
-                {/* Tags */}
-                <div className="flex flex-wrap gap-1 mb-4">
-                  {material.tags.slice(0, 3).map((tag, index) => (
-                    <Badge key={index} variant="outline" className="text-xs">
-                      {tag}
-                    </Badge>
-                  ))}
-                  {material.tags.length > 3 && (
-                    <Badge variant="outline" className="text-xs">
-                      +{material.tags.length - 3}
-                    </Badge>
-                  )}
-                </div>
-
-                {/* Actions */}
-                <div className="flex gap-2">
-                  <Button
-                    onClick={() => window.open(material.file_url, "_blank")}
-                    className="flex-1 bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white"
-                  >
-                    <Download className="h-4 w-4 mr-2" />
-                    Download
-                  </Button>
-                  <Button variant="outline" onClick={() => window.open(material.file_url, "_blank")} className="px-3">
-                    <ExternalLink className="h-4 w-4" />
-                  </Button>
-                </div>
-
-                {/* Metadata */}
-                <div className="mt-4 pt-4 border-t border-slate-200">
-                  <p className="text-xs text-slate-500">
-                    Erstellt: {new Date(material.created_at).toLocaleDateString("de-DE")}
-                  </p>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-
-        {/* Empty State */}
-        {filteredMaterials.length === 0 && (
+        {/* Materials Grid/List */}
+        {filteredMaterials.length === 0 ? (
           <div className="text-center py-12">
-            <div className="w-24 h-24 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-6">
-              <Search className="h-12 w-12 text-slate-400" />
+            <div className="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <FileText className="h-8 w-8 text-slate-400" />
             </div>
-            <h3 className="text-xl font-bold text-slate-800 mb-2">Keine Materialien gefunden</h3>
-            <p className="text-slate-600 mb-6">Versuchen Sie andere Suchbegriffe oder Filter-Einstellungen</p>
-            <Button
-              onClick={() => {
-                setSearchTerm("")
-                setSelectedCategory("all")
-                setSelectedType("all")
-              }}
-              variant="outline"
-            >
-              Filter zurücksetzen
-            </Button>
+            <h3 className="text-xl font-bold text-slate-800 mb-2">Keine Materials gefunden</h3>
+            <p className="text-slate-600">Versuchen Sie andere Suchbegriffe oder Filter.</p>
+          </div>
+        ) : (
+          <div className={viewMode === "grid" ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" : "space-y-4"}>
+            {filteredMaterials.map((material) => (
+              <Card
+                key={material.id}
+                className={`bg-white/70 backdrop-blur-sm border-0 shadow-lg hover:shadow-xl transition-all duration-300 ${
+                  viewMode === "grid" ? "transform hover:scale-[1.02]" : ""
+                }`}
+              >
+                <CardContent className={viewMode === "grid" ? "p-6" : "p-4"}>
+                  {viewMode === "grid" ? (
+                    // Grid View
+                    <>
+                      {material.thumbnailUrl && (
+                        <div className="mb-4">
+                          <Image
+                            src={material.thumbnailUrl || "/placeholder.svg"}
+                            alt={material.title}
+                            width={300}
+                            height={200}
+                            className="w-full h-40 object-cover rounded-lg"
+                            onError={(e) => {
+                              e.currentTarget.src = "/placeholder.svg?height=200&width=300&text=Preview"
+                            }}
+                          />
+                        </div>
+                      )}
+                      <div className="flex items-start gap-3 mb-4">
+                        <div className="w-10 h-10 bg-slate-100 rounded-lg flex items-center justify-center">
+                          {getFileIcon(material.type)}
+                        </div>
+                        <div className="flex-1">
+                          <h3 className="font-bold text-slate-800 mb-1">{material.title}</h3>
+                          <p className="text-sm text-slate-600 line-clamp-2">{material.description}</p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2 mb-4">
+                        <Badge className={getTypeColor(material.type)}>{material.type}</Badge>
+                        <Badge variant="outline">{material.category}</Badge>
+                        {material.fileSize && (
+                          <Badge variant="outline">{material.fileSize}</Badge>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Button size="sm" className="flex-1">
+                          <Eye className="h-4 w-4 mr-2" />
+                          Ansehen
+                        </Button>
+                        <Button size="sm" variant="outline">
+                          <Download className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </>
+                  ) : (
+                    // List View
+                    <div className="flex items-center gap-4">
+                      <div className="w-12 h-12 bg-slate-100 rounded-lg flex items-center justify-center">
+                        {getFileIcon(material.type)}
+                      </div>
+                      <div className="flex-1">
+                        <h3 className="font-bold text-slate-800 mb-1">{material.title}</h3>
+                        <p className="text-sm text-slate-600 mb-2">{material.description}</p>
+                        <div className="flex items-center gap-2">
+                          <Badge className={getTypeColor(material.type)}>{material.type}</Badge>
+                          <Badge variant="outline">{material.category}</Badge>
+                          {material.fileSize && (
+                            <Badge variant="outline">{material.fileSize}</Badge>
+                          )}
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Button size="sm">
+                          <Eye className="h-4 w-4 mr-2" />
+                          Ansehen
+                        </Button>
+                        <Button size="sm" variant="outline">
+                          <Download className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            ))}
           </div>
         )}
       </main>
