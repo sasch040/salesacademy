@@ -347,12 +347,12 @@ export default function SalesMaterialsPage() {
                 <div className="flex gap-2">
                   <Button
                     onClick={() => {
-                      if (material.fileUrl) {
-                        const link = document.createElement('a')
-                        link.href = material.fileUrl
-                        link.download = material.title
-                        link.click()
-                      }
+                      const link = document.createElement("a")
+                      link.href = material.fileUrl
+                      link.download = material.title || "datei" // Setzt Dateinamen, optional
+                      document.body.appendChild(link)
+                      link.click()
+                      document.body.removeChild(link)
                     }}
                     className="w-full bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white"
                     disabled={!material.fileUrl}
