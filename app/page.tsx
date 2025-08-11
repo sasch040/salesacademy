@@ -10,7 +10,7 @@ export default function HomePage() {
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100">
       {/* Hero Section */}
       <section className="relative overflow-hidden">
-        <div className="max-w-7xl mx-auto px-6 pt-20 pb-32">
+        <div className="max-w-7xl mx-auto px-6 pt-32 pb-16">
           <div className="text-center">
             <div className="mb-8">
               <Image
@@ -57,7 +57,7 @@ export default function HomePage() {
         </div>
       </section>
 
-      <div className="h-16"></div>
+      <div className="h-32"></div>
 
       {/* Footer */}
       <footer className="bg-slate-900 text-white py-6">
