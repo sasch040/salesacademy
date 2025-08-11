@@ -1,188 +1,140 @@
-import { type NextRequest, NextResponse } from "next/server"
+import { NextRequest, NextResponse } from "next/server"
+import { cookies } from "next/headers"
 
-const STRAPI_URL = "https://strapi-elearning-8rff.onrender.com"
-const STRAPI_TOKEN =
-  process.env.STRAPI_API_TOKEN ||
-  "992949dd37394d8faa798febe2bcd19c61aaa07c1b30873b4fe6cc4c6dce0db003fee18d71e12ec0ac5af64c61ffca2b4069eff02d5f3bfbe744a4dd6eab540a53479d68375cf0a3f2ee4231c245e5d1b09ae58356ef2744a3757bc3ca01a6189fe687cd06517aaa3b1e99b376d8203277"
+const STRAPI_URL = process.env.NEXT_PUBLIC_STRAPI_URL || "https://strapi-elearning-8rff.onrender.com"
+// ⚠️ Server-Secret (kein NEXT_PUBLIC!)
+const STRAPI_API_TOKEN = process.env.STRAPI_API_TOKEN
 
-// PUT - Update einen bestehenden Modul-Fortschritt
-export async function PUT(request: NextRequest, { params }: { params: { id: string } }) {
+function json(status: number, body: any) {
+  return NextResponse.json(body, { status })
+}
+
+async function getCurrentUserEmail(): Promise<string | null> {
+  const userJwt = cookies().get("token")?.value
+  if (!userJwt) return null
+  const r = await fetch(`${STRAPI_URL}/api/users/me`, {
+    headers: { Authorization: `Bearer ${userJwt}` },
+    cache: "no-store",
+  })
+  if (!r.ok) return null
+  const u = await r.json()
+  return u?.email || null
+}
+
+async function fetchProgressWithOwner(id: string) {
+  const r = await fetch(`${STRAPI_URL}/api/module-progresses/${id}?populate=authorized_user`, {
+    headers: { Authorization: `Bearer ${STRAPI_API_TOKEN}` },
+    cache: "no-store",
+  })
+  const data = await r.json().catch(() => null)
+  return { ok: r.ok, status: r.status, data }
+}
+
+function mapProgress(item: any) {
+  return {
+    id: item.id,
+    userEmail: item.attributes?.authorized_user?.data?.attributes?.email || "",
+    module_id: item.attributes?.module_id ?? null,
+    course_id: item.attributes?.course_id ?? null,
+    video_completed: !!item.attributes?.video_completed,
+    quiz_completed: !!item.attributes?.quiz_completed,
+    completed: !!item.attributes?.completed,
+    last_accessed: item.attributes?.last_accessed,
+    completed_at: item.attributes?.completed_at,
+  }
+}
+
+/** GET /api/module-progresses/[id] */
+export async function GET(_req: NextRequest, { params }: { params: { id: string } }) {
   try {
-    console.log("🔍 === MODULE PROGRESS UPDATE - PUT ===")
-    console.log("🔢 Progress ID:", params.id)
+    if (!STRAPI_API_TOKEN) return json(500, { error: "Server misconfigured" })
 
-    const body = await request.json()
-    console.log("📝 Update body:", body)
+    const email = await getCurrentUserEmail()
+    if (!email) return json(401, { error: "Unauthorized" })
 
-    if (!STRAPI_TOKEN) {
-      console.error("❌ STRAPI_API_TOKEN is missing!")
-      throw new Error("STRAPI_API_TOKEN environment variable is not set")
+    const { ok, status, data } = await fetchProgressWithOwner(params.id)
+    if (!ok) {
+      if (status === 404) return json(404, { error: "Progress entry not found" })
+      return json(status, { error: "Failed to fetch from Strapi", details: data })
     }
 
-    // Direkte Weiterleitung an Strapi
-    const updateUrl = `${STRAPI_URL}/api/module-progresses/${params.id}`
-    console.log("📡 Updating at:", updateUrl)
+    const ownerEmail = data?.data?.attributes?.authorized_user?.data?.attributes?.email || ""
+    if (!ownerEmail || ownerEmail !== email) {
+      return json(403, { error: "Forbidden" })
+    }
 
-    const response = await fetch(updateUrl, {
+    return json(200, { data: mapProgress(data.data) })
+  } catch (e: any) {
+    return json(500, { error: "Failed to fetch module progress", details: e?.message })
+  }
+}
+
+/** PUT /api/module-progresses/[id] */
+export async function PUT(req: NextRequest, { params }: { params: { id: string } }) {
+  try {
+    if (!STRAPI_API_TOKEN) return json(500, { error: "Server misconfigured" })
+
+    const email = await getCurrentUserEmail()
+    if (!email) return json(401, { error: "Unauthorized" })
+
+    // 1) Eintrag + Owner prüfen
+    const fetched = await fetchProgressWithOwner(params.id)
+    if (!fetched.ok) {
+      if (fetched.status === 404) return json(404, { error: "Progress entry not found" })
+      return json(fetched.status, { error: "Failed to fetch from Strapi", details: fetched.data })
+    }
+    const ownerEmail = fetched.data?.data?.attributes?.authorized_user?.data?.attributes?.email || ""
+    if (!ownerEmail || ownerEmail !== email) return json(403, { error: "Forbidden" })
+
+    // 2) Body whitelisten & abgeleitete Felder setzen
+    const body = await req.json().catch(() => ({}))
+    const allow = ["video_completed", "quiz_completed", "last_accessed"] as const
+    const patch: any = {}
+    for (const k of allow) if (k in body) patch[k] = body[k]
+
+    const prev = mapProgress(fetched.data.data)
+    const nowIso = new Date().toISOString()
+
+    // last_accessed immer aktualisieren (falls nicht explizit gesetzt)
+    patch.last_accessed = patch.last_accessed || nowIso
+
+    const nextVideo = "video_completed" in patch ? !!patch.video_completed : prev.video_completed
+    const nextQuiz = "quiz_completed" in patch ? !!patch.quiz_completed : prev.quiz_completed
+    const nextCompleted = nextVideo && nextQuiz
+
+    patch.completed = nextCompleted
+    patch.completed_at = nextCompleted ? (prev.completed_at || nowIso) : null
+
+    // 3) Update an Strapi (korrektes Format!)
+    const r = await fetch(`${STRAPI_URL}/api/module-progresses/${params.id}`, {
       method: "PUT",
       headers: {
-        Authorization: `Bearer ${STRAPI_TOKEN}`,
+        Authorization: `Bearer ${STRAPI_API_TOKEN}`,
         "Content-Type": "application/json",
       },
-      body: JSON.stringify(body),
+      body: JSON.stringify({ data: patch }),
     })
+    const data = await r.json().catch(() => null)
+    if (!r.ok) return json(r.status, { error: "Failed to update progress", details: data })
 
-    if (!response.ok) {
-      const errorText = await response.text()
-      console.error("💥 Strapi update error:", response.status, response.statusText, errorText)
-
-      // Spezielle Behandlung für 404 (ID nicht gefunden)
-      if (response.status === 404) {
-        return NextResponse.json(
-          {
-            error: "Progress entry not found",
-            details: `No module progress found with ID ${params.id}`,
-            suggestion: "Use POST to create a new progress entry instead",
-          },
-          { status: 404 },
-        )
-      }
-
-      throw new Error(`Strapi returned ${response.status}: ${response.statusText}`)
-    }
-
-    const updatedData = await response.json()
-    console.log("✅ Progress updated successfully")
-
-    return NextResponse.json({
-      success: true,
-      action: "updated",
-      data: updatedData.data,
-    })
-  } catch (error: unknown) {
-    const err = error as Error
-    console.error("💥 Module progress PUT error:", err)
-    return NextResponse.json(
-      {
-        error: "Failed to update module progress",
-        details: err.message,
-      },
-      { status: 500 },
-    )
+    return json(200, { success: true, action: "updated", data: mapProgress(data.data) })
+  } catch (e: any) {
+    return json(500, { error: "Failed to update module progress", details: e?.message })
   }
 }
 
-// GET - Hole einen spezifischen Modul-Fortschritt
-export async function GET(request: NextRequest, { params }: { params: { id: string } }) {
+/** DELETE /api/module-progresses/[id] */
+export async function DELETE(_req: NextRequest, { params }: { params: { id: string } }) {
   try {
-    console.log("🔍 === MODULE PROGRESS GET - Single Entry ===")
-    console.log("🔢 Progress ID:", params.id)
+    if (!STRAPI_API_TOKEN) return json(500, { error: "Server misconfigured" })
 
-    if (!STRAPI_TOKEN) {
-      console.error("❌ STRAPI_API_TOKEN is missing!")
-      throw new Error("STRAPI_API_TOKEN environment variable is not set")
+    const email = await getCurrentUserEmail()
+    if (!email) return json(401, { error: "Unauthorized" })
+
+    // Owner prüfen
+    const fetched = await fetchProgressWithOwner(params.id)
+    if (!fetched.ok) {
+      if (fetched.status === 404) return json(404, { error: "Progress entry not found" })
+      return json(fetched.status, { error: "Failed to fetch from Strapi", details: fetched.data })
     }
-
-    const getUrl = `${STRAPI_URL}/api/module-progresses/${params.id}?populate=*`
-    console.log("📡 Fetching from:", getUrl)
-
-    const response = await fetch(getUrl, {
-      headers: {
-        Authorization: `Bearer ${STRAPI_TOKEN}`,
-        "Content-Type": "application/json",
-      },
-    })
-
-    if (!response.ok) {
-      const errorText = await response.text()
-      console.error("💥 Strapi get error:", response.status, response.statusText, errorText)
-
-      if (response.status === 404) {
-        return NextResponse.json(
-          {
-            error: "Progress entry not found",
-            details: `No module progress found with ID ${params.id}`,
-          },
-          { status: 404 },
-        )
-      }
-
-      throw new Error(`Strapi returned ${response.status}: ${response.statusText}`)
-    }
-
-    const data = await response.json()
-    console.log("✅ Progress fetched successfully")
-
-    return NextResponse.json(data)
-  } catch (error) {
-    const e = error as Error
-    console.error("💥 Module progress GET error:", e)
-    return NextResponse.json(
-      {
-        error: "Failed to fetch module progress",
-        details: e.message,
-      },
-      { status: 500 },
-    )
-  }
-}
-
-// DELETE - Lösche einen Modul-Fortschritt
-export async function DELETE(request: NextRequest, { params }: { params: { id: string } }) {
-  try {
-    console.log("🔍 === MODULE PROGRESS DELETE ===")
-    console.log("🔢 Progress ID:", params.id)
-
-    if (!STRAPI_TOKEN) {
-      console.error("❌ STRAPI_API_TOKEN is missing!")
-      throw new Error("STRAPI_API_TOKEN environment variable is not set")
-    }
-
-    const deleteUrl = `${STRAPI_URL}/api/module-progresses/${params.id}`
-    console.log("📡 Deleting at:", deleteUrl)
-
-    const response = await fetch(deleteUrl, {
-      method: "DELETE",
-      headers: {
-        Authorization: `Bearer ${STRAPI_TOKEN}`,
-        "Content-Type": "application/json",
-      },
-    })
-
-    if (!response.ok) {
-      const errorText = await response.text()
-      console.error("💥 Strapi delete error:", response.status, response.statusText, errorText)
-
-      if (response.status === 404) {
-        return NextResponse.json(
-          {
-            error: "Progress entry not found",
-            details: `No module progress found with ID ${params.id}`,
-          },
-          { status: 404 },
-        )
-      }
-
-      throw new Error(`Strapi returned ${response.status}: ${response.statusText}`)
-    }
-
-    const deletedData = await response.json()
-    console.log("✅ Progress deleted successfully")
-
-    return NextResponse.json({
-      success: true,
-      action: "deleted",
-      data: deletedData.data,
-    })
-  } catch (error) {
-    const err = error as Error
-    console.error("💥 Module progress DELETE error:", err)
-    return NextResponse.json(
-      {
-        error: "Failed to delete module progress",
-        details: err.message,
-      },
-      { status: 500 },
-    )
-  }
-}
+    const ownerEmail = fetched.data?.data?.attributes?.authorized_user?.data_
