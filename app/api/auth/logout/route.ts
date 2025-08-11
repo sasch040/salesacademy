@@ -1,15 +1,13 @@
 import { NextResponse } from "next/server"
-import { cookies } from "next/headers"
 
 export async function POST() {
-  const cookieStore = await cookies();
-  cookieStore.set("token", "", {
+  const res = NextResponse.json({ message: "Logout erfolgreich" })
+  res.cookies.set("token", "", {
     httpOnly: true,
-    secure: true,
+    secure: process.env.NODE_ENV === "production",
     sameSite: "lax",
     path: "/",
-    maxAge: 0, // löscht Cookie sofort
+    maxAge: 0, // sofort löschen
   })
-
-  return NextResponse.json({ message: "Logout erfolgreich" })
+  return res
 }
