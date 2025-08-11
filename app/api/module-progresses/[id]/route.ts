@@ -17,7 +17,12 @@ async function me() {
 }
 
 async function fetchOne(id: string) {
-  const r = await fetch(`${STRAPI_URL}/api/module-progresses/${id}?populate=users_permissions_user,module`, {
+  // ✅ Strapi v4 populate ohne Komma
+  const qs = new URLSearchParams();
+  qs.set("populate[users_permissions_user][fields][0]", "id");
+  qs.set("populate[module][fields][0]", "id");
+
+  const r = await fetch(`${STRAPI_URL}/api/module-progresses/${id}?${qs.toString()}`, {
     headers: { Authorization: `Bearer ${STRAPI_API_TOKEN}` },
     cache: "no-store",
   });
