@@ -55,7 +55,9 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
   if (ownerId !== user.id) return j(403, { error: "Forbidden" });
 
   const body = await req.json().catch(() => ({}));
-  const payload = { data: { ...body?.data } };
+  // Erlaubt entweder {data:{...}} oder flach {videoWatched, quizCompleted, completed}
+  const patch = body?.data ?? body ?? {};
+  const payload = { data: patch };
 
   const upd = await fetch(`${STRAPI_URL}/api/module-progresses/${params.id}`, {
     method: "PUT",
