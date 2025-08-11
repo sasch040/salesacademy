@@ -1,5 +1,5 @@
 "use client"
-import { saveProgress } from "@/lib/progress";
+
 import { useEffect, useState } from "react"
 import { useRouter, useParams } from "next/navigation"
 import { Button } from "@/components/ui/button"
@@ -80,26 +80,22 @@ export default function DynamicCoursePage() {
 
   // ---- Helpers -------------------------------------------------------------
 
-  // Speichert Fortschritt in deiner API (/api/module-progresses)
+  // Fortschritt in deiner Next-API speichern (kein direkter Strapi-Call im Client!)
   async function persistProgress(moduleId: number, patch: { videoWatched?: boolean; quizCompleted?: boolean }) {
     if (!userEmail) return
     try {
-      const res = await fetch(
-        `/api/module-progresses`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          credentials: "include",
-          body: JSON.stringify({
-            userEmail,
-            module_id: moduleId,
-            course_id: Number(courseId),
-            // camelCase Felder – dein Route-Code mapped/normalisiert das serverseitig
-            videoWatched: !!patch.videoWatched,
-            quizCompleted: !!patch.quizCompleted,
-          }),
-        }
-      )
+      const res = await fetch(`/api/module-progresses`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({
+          userEmail,
+          module_id: moduleId,
+          course_id: Number(courseId),
+          videoWatched: !!patch.videoWatched,
+          quizCompleted: !!patch.quizCompleted,
+        }),
+      })
       if (!res.ok) {
         const t = await res.text()
         console.warn("⚠️ persistProgress failed:", res.status, t)
@@ -109,7 +105,7 @@ export default function DynamicCoursePage() {
     }
   }
 
-  // Hydriert lokale States aus /api/module-progresses
+  // Fortschritt vom Server holen und lokale States hydratisieren
   async function hydrateProgress() {
     if (!userEmail || !course) return
     try {
@@ -122,17 +118,13 @@ export default function DynamicCoursePage() {
         return
       }
       const json = await res.json()
-
-      // json.data[] kann je nach Route-Transformation camelCase oder snake_case enthalten – robust lesen:
       const items: Array<any> = json?.data || []
 
       const vs: typeof videoStates = {}
       const qs: typeof quizStates = {}
 
       course.modules.forEach((m) => {
-        const entry = items.find(
-          (it) => (it.moduleId ?? it.module_id) === m.id
-        )
+        const entry = items.find((it) => (it.moduleId ?? it.module_id) === m.id)
         const videoDone = Boolean(entry?.videoWatched ?? entry?.video_completed)
         const quizDone = Boolean(entry?.quizCompleted ?? entry?.quiz_completed)
 
@@ -168,26 +160,14 @@ export default function DynamicCoursePage() {
     const loadCourse = async () => {
       try {
         setLoading(true)
-        console.log("🔍 === DYNAMIC COURSE PAGE: Loading course ===")
-        console.log("🎯 Course ID from URL:", courseId)
-
         const response = await fetch(`/api/courses/${courseId}`, {
           headers: { "Content-Type": "application/json" },
         })
-
-        console.log("📡 Course API Response Status:", response.status)
-
         if (response.ok) {
           const courseData = await response.json()
-          console.log("✅ Course API Data Received")
-          console.log("📝 Course Title:", courseData.title)
-          console.log("🔢 Course ID:", courseData.id)
-          console.log("📚 Modules Count:", courseData.modules?.length || 0)
           setCourse(courseData)
-          console.log("✅ Course state updated")
         } else {
-          const errorData = await response.json()
-          console.error("❌ Course API failed:", errorData)
+          const errorData = await response.json().catch(() => ({}))
           setError(errorData.error || "Kurs konnte nicht geladen werden")
         }
       } catch (err) {
@@ -195,15 +175,11 @@ export default function DynamicCoursePage() {
         setError("Fehler beim Laden des Kurses")
       } finally {
         setLoading(false)
-        console.log("🏁 Course loading finished")
       }
     }
 
-    if (courseId) {
-      console.log("🚀 Starting course load for ID:", courseId)
-      loadCourse()
-    } else {
-      console.error("❌ No courseId provided")
+    if (courseId) loadCourse()
+    else {
       setError("Keine Kurs-ID gefunden")
       setLoading(false)
     }
@@ -219,13 +195,11 @@ export default function DynamicCoursePage() {
         })
 
         if (!res.ok) {
-          console.warn("⛔ Nicht eingeloggt – Weiterleitung zum Login")
           router.push("/auth/login")
           return
         }
 
         const data = await res.json()
-        console.log("✅ Authentifizierter User:", data.user)
         setUserEmail(data.user?.email || "")
       } catch (err) {
         console.error("💥 Fehler bei Auth-Check:", err)
@@ -247,12 +221,10 @@ export default function DynamicCoursePage() {
   // ---- UI / Handlers -------------------------------------------------------
 
   const toggleModule = (moduleId: number) => {
-    console.log("🔄 Toggling module:", moduleId)
     setExpandedModule((prev) => (prev === moduleId ? null : moduleId))
   }
 
   const handleVideoPlay = (moduleId: number) => {
-    console.log("🎥 Video started for module:", moduleId)
     setVideoStates((prev) => ({
       ...prev,
       [moduleId]: { ...prev[moduleId], isPlaying: true },
@@ -260,7 +232,6 @@ export default function DynamicCoursePage() {
   }
 
   const handleVideoPause = (moduleId: number) => {
-    console.log("⏸️ Video paused for module:", moduleId)
     setVideoStates((prev) => ({
       ...prev,
       [moduleId]: { ...prev[moduleId], isPlaying: false },
@@ -269,7 +240,6 @@ export default function DynamicCoursePage() {
 
   // Video-Ende -> lokal + Server
   const handleVideoEnded = async (moduleId: number) => {
-    console.log("✅ Video completed for module:", moduleId)
     setVideoStates((prev) => ({
       ...prev,
       [moduleId]: { ...prev[moduleId], isPlaying: false, completed: true },
@@ -278,7 +248,6 @@ export default function DynamicCoursePage() {
   }
 
   const startQuiz = (moduleId: number) => {
-    console.log("🧠 Starting quiz for module:", moduleId)
     setQuizStates((prev) => ({
       ...prev,
       [moduleId]: {
@@ -294,20 +263,12 @@ export default function DynamicCoursePage() {
   }
 
   const answerQuestion = (moduleId: number, answerIndex: number) => {
-    console.log("📝 Answering question for module:", moduleId, "answer:", answerIndex)
     const module = course?.modules.find((m) => m.id === moduleId)
     if (!module) return
 
     const currentQuizState = quizStates[moduleId]
     const currentQuestion = module.quiz.questions[currentQuizState?.currentQuestion || 0]
     const isCorrect = answerIndex === currentQuestion?.correctAnswer
-
-    console.log(`📝 Question: "${currentQuestion.question}"`)
-    console.log(`📝 Selected: "${currentQuestion.options[answerIndex]}" (index: ${answerIndex})`)
-    console.log(
-      `📝 Correct: "${currentQuestion.options[currentQuestion.correctAnswer]}" (index: ${currentQuestion.correctAnswer})`
-    )
-    console.log(`📝 Is Correct: ${isCorrect}`)
 
     setQuizStates((prev) => ({
       ...prev,
@@ -326,10 +287,6 @@ export default function DynamicCoursePage() {
         }, 0)
         const score = Math.round((correctAnswers / module.quiz.questions.length) * 100)
 
-        console.log(
-          `🎯 Quiz completed for module ${moduleId}: ${correctAnswers}/${module.quiz.questions.length} correct (${score}%)`
-        )
-
         setQuizStates((prev) => ({
           ...prev,
           [moduleId]: {
@@ -342,7 +299,6 @@ export default function DynamicCoursePage() {
           },
         }))
 
-        // bestanden -> Server speichern
         if (score >= module.quiz.passingScore) {
           persistProgress(moduleId, { quizCompleted: true })
         }
@@ -362,7 +318,6 @@ export default function DynamicCoursePage() {
   }
 
   const resetQuiz = (moduleId: number) => {
-    console.log("🔄 Resetting quiz for module:", moduleId)
     setQuizStates((prev) => ({
       ...prev,
       [moduleId]: {
@@ -385,7 +340,7 @@ export default function DynamicCoursePage() {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 flex items-center justify-center">
         <div className="text-center">
-          <div className="w-16 h-16 border-4 border-purple-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <div className="w-16 h-16 border-4 border-purple-500 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
           <p className="text-slate-600">Kurs wird geladen...</p>
           <p className="text-xs text-slate-400 mt-2">Course ID: {courseId}</p>
         </div>
@@ -413,17 +368,16 @@ export default function DynamicCoursePage() {
   }
 
   const completedModules =
-    course?.modules.filter((m) => {
+    course.modules.filter((m) => {
       const videoCompleted = videoStates[m.id]?.completed || false
       const quizCompleted = quizStates[m.id]?.completed || false
       return videoCompleted && quizCompleted
     }).length || 0
 
-  const totalModules = course?.modules.length || 0
+  const totalModules = course.modules.length || 0
   const progressPercentage = totalModules > 0 ? (completedModules / totalModules) * 100 : 0
-
   const totalDurationMinutes =
-    course?.modules.reduce((total, module) => {
+    course.modules.reduce((total, module) => {
       const duration = module.duration.replace(/[^\d]/g, "")
       return total + (Number.parseInt(duration) || 0)
     }, 0) || 0
@@ -441,7 +395,7 @@ export default function DynamicCoursePage() {
               Zurück zum Dashboard
             </Button>
           </Link>
-          <div className="w-px h-6 bg-slate-300 mx-2"></div>
+          <div className="w-px h-6 bg-slate-300 mx-2" />
           <div className="flex items-center gap-2">
             <Image
               src="/images/sales-academy-new-logo.png"
@@ -450,7 +404,7 @@ export default function DynamicCoursePage() {
               height={45}
               className="h-6 w-auto drop-shadow-lg"
               onError={(e) => {
-                e.currentTarget.style.display = "none"
+                (e.currentTarget as HTMLImageElement).style.display = "none"
               }}
             />
             <span className="text-sm font-bold text-slate-800">Sales Academy</span>
@@ -466,8 +420,8 @@ export default function DynamicCoursePage() {
             <div className="flex items-center gap-4 mb-4">
               <div className="w-16 h-16 flex items-center justify-center">
                 <Image
-                  src={course?.logo || "/placeholder.svg"}
-                  alt={course?.title || "Kurs"}
+                  src={course.logo || "/placeholder.svg"}
+                  alt={course.title || "Kurs"}
                   width={64}
                   height={64}
                   className="w-full h-full object-contain drop-shadow-lg"
@@ -477,8 +431,8 @@ export default function DynamicCoursePage() {
                 />
               </div>
               <div>
-                <CardTitle className="text-3xl font-bold text-slate-800">{course?.title || "Kurs"}</CardTitle>
-                <p className="text-slate-600 font-light mt-1">{course?.description || "Kursbeschreibung"}</p>
+                <CardTitle className="text-3xl font-bold text-slate-800">{course.title || "Kurs"}</CardTitle>
+                <p className="text-slate-600 font-light mt-1">{course.description || "Kursbeschreibung"}</p>
               </div>
             </div>
           </CardHeader>
@@ -517,7 +471,7 @@ export default function DynamicCoursePage() {
               </div>
               <div className="w-full bg-slate-200 rounded-full h-3 overflow-hidden mb-2">
                 <div
-                  className={`bg-gradient-to-r ${course?.gradient || "from-slate-500 to-slate-600"} h-3 rounded-full transition-all duration-500 shadow-sm`}
+                  className={`bg-gradient-to-r ${course.gradient || "from-slate-500 to-slate-600"} h-3 rounded-full transition-all duration-500 shadow-sm`}
                   style={{ width: `${progressPercentage}%` }}
                 />
               </div>
@@ -546,7 +500,7 @@ export default function DynamicCoursePage() {
 
           {course.modules.length === 0 ? (
             <div className="text-center py-8">
-              <div className="w-16 h-16 border-4 border-purple-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+              <div className="w-16 h-16 border-4 border-purple-500 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
               <p className="text-slate-600">Module werden aus der Courses API geladen...</p>
               <p className="text-xs text-slate-400 mt-2">Course ID: {courseId}</p>
             </div>
