@@ -33,6 +33,7 @@ export async function POST(request: NextRequest) {
           username: email, // Strapi verwendet username
           email,
           password,
+          redirectUrl: "https://v0-e-learning-platform-design-seven.vercel.app/auth/email-confirmed?token={{ .TokenHash }}", // ✅ HIER hinzufügen
         }),
         signal: controller.signal,
       })

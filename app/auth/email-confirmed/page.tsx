@@ -2,14 +2,14 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
+import { CheckCircle, Loader2 } from 'lucide-react'
+import Link from 'next/link'
+import Image from 'next/image'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Alert, AlertDescription } from '@/components/ui/alert'
-import { CheckCircle, Loader2 } from 'lucide-react'
-import Link from 'next/link'
-import Image from 'next/image'
 
 export default function EmailConfirmedPage() {
   const [identifier, setIdentifier] = useState('')
@@ -27,8 +27,9 @@ export default function EmailConfirmedPage() {
 
     // 2) Email vorbefüllen (aus Redirect oder localStorage)
     const emailParam = searchParams.get('email') || ''
-    if (emailParam) setIdentifier(emailParam)
-    else {
+    if (emailParam) {
+      setIdentifier(emailParam)
+    } else {
       const pending = typeof window !== 'undefined' ? localStorage.getItem('pendingEmail') : ''
       if (pending) setIdentifier(pending)
       localStorage.removeItem('pendingEmail')
@@ -85,15 +86,13 @@ export default function EmailConfirmedPage() {
 
   if (status === 'error') {
     return (
-      <div className="min-h-screen flex items-center justify-center text-center px-4">
-        <Card className="w-full max-w-md shadow-2xl p-6">
+      <div className="min-h-screen flex items-center justify-center px-4">
+        <Card className="w-full max-w-md shadow-lg p-6">
           <CardHeader>
             <CardTitle className="text-red-600">❌ Bestätigung fehlgeschlagen</CardTitle>
-            <CardDescription className="text-slate-600">
-              Der Bestätigungslink ist ungültig oder abgelaufen.
-            </CardDescription>
+            <CardDescription>Der Bestätigungslink ist ungültig oder abgelaufen.</CardDescription>
           </CardHeader>
-          <CardContent className="text-center space-y-4">
+          <CardContent className="text-center">
             <Link href="/auth/login">
               <Button variant="outline">Zur Anmeldung</Button>
             </Link>
@@ -108,12 +107,18 @@ export default function EmailConfirmedPage() {
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
           <Link href="/" className="inline-flex items-center gap-3 hover:opacity-80 transition-opacity">
-            <Image src="/images/sales-academy-logo.png" alt="Sales Academy" width={60} height={60} className="h-12 w-12 drop-shadow-lg" />
+            <Image
+              src="/images/sales-academy-logo.png"
+              alt="Sales Academy"
+              width={60}
+              height={60}
+              className="h-12 w-12 drop-shadow-lg"
+            />
             <span className="text-2xl font-bold text-slate-800 ml-2">Sales Academy</span>
           </Link>
         </div>
 
-        <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-2xl">
+        <Card className="bg-white/80 backdrop-blur-sm shadow-2xl">
           <CardHeader className="text-center pb-6">
             <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-green-100">
               <CheckCircle className="h-8 w-8 text-green-600" />
@@ -128,14 +133,28 @@ export default function EmailConfirmedPage() {
             <form onSubmit={handleSubmit} className="space-y-6">
               <div className="space-y-3">
                 <Label htmlFor="identifier" className="text-slate-700 font-medium">E-Mail-Adresse</Label>
-                <Input id="identifier" type="email" placeholder="ihre.email@example.com"
-                  value={identifier} onChange={(e) => setIdentifier(e.target.value)} required disabled={isLoading} />
+                <Input
+                  id="identifier"
+                  type="email"
+                  placeholder="ihre.email@example.com"
+                  value={identifier}
+                  onChange={(e) => setIdentifier(e.target.value)}
+                  required
+                  disabled={isLoading}
+                />
               </div>
 
               <div className="space-y-3">
                 <Label htmlFor="password" className="text-slate-700 font-medium">Passwort</Label>
-                <Input id="password" type="password" placeholder="••••••••"
-                  value={password} onChange={(e) => setPassword(e.target.value)} required disabled={isLoading} />
+                <Input
+                  id="password"
+                  type="password"
+                  placeholder="••••••••"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                  disabled={isLoading}
+                />
               </div>
 
               {error && (
@@ -145,15 +164,28 @@ export default function EmailConfirmedPage() {
               )}
 
               <Button type="submit" className="w-full h-12" disabled={isLoading}>
-                {isLoading ? (<><Loader2 className="mr-2 h-4 w-4 animate-spin" />Wird angemeldet…</>) : ('🔐 Jetzt einloggen')}
+                {isLoading ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Wird angemeldet…
+                  </>
+                ) : (
+                  '🔐 Jetzt einloggen'
+                )}
               </Button>
             </form>
 
             <div className="mt-8 text-center space-y-4">
-              <Link href="/auth/forgot-password" className="text-sm text-slate-600 hover:text-slate-800 font-light transition-colors">
+              <Link
+                href="/auth/forgot-password"
+                className="text-sm text-slate-600 hover:text-slate-800 font-light transition-colors"
+              >
                 Passwort vergessen?
               </Link>
-              <Link href="/" className="text-sm text-slate-600 hover:text-slate-800 font-light transition-colors block">
+              <Link
+                href="/"
+                className="text-sm text-slate-600 hover:text-slate-800 font-light transition-colors block"
+              >
                 ← Zurück zur Startseite
               </Link>
             </div>
