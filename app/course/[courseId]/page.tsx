@@ -20,6 +20,9 @@ import Link from "next/link"
 import Image from "next/image"
 import { YouTubePlayer } from "@/components/youtube-player"
 
+// ✅ NEU: Progress-Helpers
+import { saveProgress, getProgressByUser } from "@/lib/progress"
+
 // Types für ID-basierte Daten
 interface DynamicModule {
   id: number
@@ -165,6 +168,44 @@ export default function CoursePage() {
     checkAuth()
   }, [router])
 
+  // ✅ NEU: Fortschritt vom Server hydratisieren (Video/Quiz-Flags je Modul)
+  useEffect(() => {
+    if (!course) return
+    ;(async () => {
+      try {
+        const list = await getProgressByUser()
+        const byModule = new Map(list.map((p) => [p.moduleId, p]))
+
+        const vs: typeof videoStates = {}
+        const qs: typeof quizStates = {}
+
+        course.modules.forEach((m) => {
+          const p = byModule.get(m.id)
+          vs[m.id] = {
+            isPlaying: false,
+            currentTime: 0,
+            duration: 0,
+            completed: !!p?.videoWatched,
+          }
+          qs[m.id] = {
+            isOpen: false,
+            currentQuestion: 0,
+            answers: [],
+            score: null,
+            completed: !!p?.quizCompleted,
+            showFeedback: false,
+            lastAnswerCorrect: false,
+          }
+        })
+
+        setVideoStates(vs)
+        setQuizStates(qs)
+      } catch (e) {
+        console.error("💥 Fortschritt laden fehlgeschlagen:", e)
+      }
+    })()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [course?.id])
 
   // ID-basierte Funktionen
   const toggleModule = (moduleId: number) => {
@@ -194,7 +235,8 @@ export default function CoursePage() {
     }))
   }
 
-  const handleVideoEnded = (moduleId: number) => {
+  // ✅ NEU: Video-Ende -> lokal & Strapi speichern
+  const handleVideoEnded = async (moduleId: number) => {
     console.log("✅ Video completed for module:", moduleId)
     setVideoStates((prev) => ({
       ...prev,
@@ -204,6 +246,11 @@ export default function CoursePage() {
         completed: true,
       },
     }))
+    try {
+      await saveProgress(moduleId, { videoWatched: true })
+    } catch (e) {
+      console.error("💥 Fortschritt speichern (Video) fehlgeschlagen:", e)
+    }
   }
 
   const startQuiz = (moduleId: number) => {
@@ -275,6 +322,17 @@ export default function CoursePage() {
               lastAnswerCorrect: isCorrect,
             },
           }))
+
+          // ✅ NEU: Bei „bestanden“ Fortschritt in Strapi markieren
+          if (score >= module.quiz.passingScore) {
+            ;(async () => {
+              try {
+                await saveProgress(moduleId, { quizCompleted: true })
+              } catch (e) {
+                console.error("💥 Fortschritt speichern (Quiz) fehlgeschlagen:", e)
+              }
+            })()
+          }
         } else {
           setQuizStates((prev) => ({
             ...prev,
