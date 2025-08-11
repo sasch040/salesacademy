@@ -20,6 +20,9 @@ import Link from "next/link"
 import Image from "next/image"
 import { YouTubePlayer } from "@/components/youtube-player"
 
+// ✅ Progress-Helpers (gleiche wie in der normalen Course-Page)
+import { getProgressList, saveProgress } from "@/lib/progress"
+
 // Types
 interface DynamicModule {
   id: number
@@ -55,7 +58,6 @@ export default function DynamicCoursePage() {
   const [course, setCourse] = useState<DynamicCourse | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [userEmail, setUserEmail] = useState("")
   const [expandedModule, setExpandedModule] = useState<number | null>(null)
 
   const [videoStates, setVideoStates] = useState<{
@@ -78,84 +80,9 @@ export default function DynamicCoursePage() {
   const params = useParams<{ courseId: string }>()
   const courseId = params.courseId
 
-  // ---- Helpers -------------------------------------------------------------
+  // ---- Data fetching -------------------------------------------------------
 
-  // Fortschritt in deiner Next-API speichern (kein direkter Strapi-Call im Client!)
-  async function persistProgress(moduleId: number, patch: { videoWatched?: boolean; quizCompleted?: boolean }) {
-    if (!userEmail) return
-    try {
-      const res = await fetch(`/api/module-progresses`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
-        body: JSON.stringify({
-          userEmail,
-          module_id: moduleId,
-          course_id: Number(courseId),
-          videoWatched: !!patch.videoWatched,
-          quizCompleted: !!patch.quizCompleted,
-        }),
-      })
-      if (!res.ok) {
-        const t = await res.text()
-        console.warn("⚠️ persistProgress failed:", res.status, t)
-      }
-    } catch (e) {
-      console.error("💥 persistProgress error:", e)
-    }
-  }
-
-  // Fortschritt vom Server holen und lokale States hydratisieren
-  async function hydrateProgress() {
-    if (!userEmail || !course) return
-    try {
-      const url = `/api/module-progresses?userEmail=${encodeURIComponent(userEmail)}&courseId=${encodeURIComponent(
-        String(course.id)
-      )}`
-      const res = await fetch(url, { credentials: "include" })
-      if (!res.ok) {
-        console.warn("⚠️ hydrateProgress failed:", res.status)
-        return
-      }
-      const json = await res.json()
-      const items: Array<any> = json?.data || []
-
-      const vs: typeof videoStates = {}
-      const qs: typeof quizStates = {}
-
-      course.modules.forEach((m) => {
-        const entry = items.find((it) => (it.moduleId ?? it.module_id) === m.id)
-        const videoDone = Boolean(entry?.videoWatched ?? entry?.video_completed)
-        const quizDone = Boolean(entry?.quizCompleted ?? entry?.quiz_completed)
-
-        vs[m.id] = {
-          isPlaying: false,
-          currentTime: 0,
-          duration: 0,
-          completed: videoDone,
-        }
-
-        qs[m.id] = {
-          isOpen: false,
-          currentQuestion: 0,
-          answers: [],
-          score: null,
-          completed: quizDone,
-          showFeedback: false,
-          lastAnswerCorrect: false,
-        }
-      })
-
-      setVideoStates(vs)
-      setQuizStates(qs)
-    } catch (e) {
-      console.error("💥 hydrateProgress error:", e)
-    }
-  }
-
-  // ---- Effects -------------------------------------------------------------
-
-  // Kursdaten laden
+  // Kurs laden (über deine interne API)
   useEffect(() => {
     const loadCourse = async () => {
       try {
@@ -163,15 +90,14 @@ export default function DynamicCoursePage() {
         const response = await fetch(`/api/courses/${courseId}`, {
           headers: { "Content-Type": "application/json" },
         })
-        if (response.ok) {
-          const courseData = await response.json()
-          setCourse(courseData)
-        } else {
-          const errorData = await response.json().catch(() => ({}))
-          setError(errorData.error || "Kurs konnte nicht geladen werden")
+        if (!response.ok) {
+          const err = await response.json().catch(() => ({}))
+          setError(err?.error || "Kurs konnte nicht geladen werden")
+          return
         }
+        const courseData = await response.json()
+        setCourse(courseData)
       } catch (err) {
-        console.error("💥 Course loading error:", err)
         setError("Fehler beim Laden des Kurses")
       } finally {
         setLoading(false)
@@ -185,40 +111,61 @@ export default function DynamicCoursePage() {
     }
   }, [courseId])
 
-  // Auth prüfen (holt userEmail)
+  // Auth prüfen (redirect wenn nicht eingeloggt)
   useEffect(() => {
     const checkAuth = async () => {
       try {
-        const res = await fetch("/api/auth/me", {
-          method: "GET",
-          credentials: "include",
-        })
-
+        const res = await fetch("/api/auth/me", { method: "GET", credentials: "include" })
         if (!res.ok) {
           router.push("/auth/login")
-          return
         }
-
-        const data = await res.json()
-        setUserEmail(data.user?.email || "")
-      } catch (err) {
-        console.error("💥 Fehler bei Auth-Check:", err)
+      } catch {
         router.push("/auth/login")
       }
     }
-
     checkAuth()
   }, [router])
 
-  // Fortschritte hydratisieren, sobald Kurs + User da sind
+  // Fortschritt hydratisieren (Video/Quiz-Flags je Modul)
   useEffect(() => {
-    if (course && userEmail) {
-      hydrateProgress()
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [course?.id, userEmail])
+    if (!course) return
+    ;(async () => {
+      try {
+        const list = await getProgressList() // alle Progress-Einträge des eingeloggten Users
+        const byModule = new Map(list.map((p) => [p.moduleId, p]))
 
-  // ---- UI / Handlers -------------------------------------------------------
+        const vs: typeof videoStates = {}
+        const qs: typeof quizStates = {}
+
+        course.modules.forEach((m) => {
+          const p = byModule.get(m.id)
+          vs[m.id] = {
+            isPlaying: false,
+            currentTime: 0,
+            duration: 0,
+            completed: !!p?.videoWatched,
+          }
+          qs[m.id] = {
+            isOpen: false,
+            currentQuestion: 0,
+            answers: [],
+            score: null,
+            completed: !!p?.quizCompleted,
+            showFeedback: false,
+            lastAnswerCorrect: false,
+          }
+        })
+
+        setVideoStates(vs)
+        setQuizStates(qs)
+      } catch (e) {
+        console.error("⚠️ Progress laden fehlgeschlagen:", e)
+      }
+    })()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [course?.id])
+
+  // ---- UI-Handler ----------------------------------------------------------
 
   const toggleModule = (moduleId: number) => {
     setExpandedModule((prev) => (prev === moduleId ? null : moduleId))
@@ -238,13 +185,17 @@ export default function DynamicCoursePage() {
     }))
   }
 
-  // Video-Ende -> lokal + Server
+  // ✅ Video-Ende -> lokal + Server via saveProgress
   const handleVideoEnded = async (moduleId: number) => {
     setVideoStates((prev) => ({
       ...prev,
       [moduleId]: { ...prev[moduleId], isPlaying: false, completed: true },
     }))
-    await persistProgress(moduleId, { videoWatched: true })
+    try {
+      await saveProgress(moduleId, { videoWatched: true }) // schickt { moduleId, videoWatched: true }
+    } catch (e) {
+      console.error("💥 Fortschritt speichern (Video) fehlgeschlagen:", e)
+    }
   }
 
   const startQuiz = (moduleId: number) => {
@@ -299,8 +250,15 @@ export default function DynamicCoursePage() {
           },
         }))
 
+        // ✅ bestanden -> auf dem Server markieren
         if (score >= module.quiz.passingScore) {
-          persistProgress(moduleId, { quizCompleted: true })
+          ;(async () => {
+            try {
+              await saveProgress(moduleId, { quizCompleted: true }) // schickt { moduleId, quizCompleted: true }
+            } catch (e) {
+              console.error("💥 Fortschritt speichern (Quiz) fehlgeschlagen:", e)
+            }
+          })()
         }
       } else {
         setQuizStates((prev) => ({
@@ -334,13 +292,13 @@ export default function DynamicCoursePage() {
 
   const isYouTubeUrl = (url: string) => url.includes("youtube.com") || url.includes("youtu.be")
 
-  // ---- UI -------------------------------------------------------------
+  // ---- UI ------------------------------------------------------------------
 
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 flex items-center justify-center">
         <div className="text-center">
-          <div className="w-16 h-16 border-4 border-purple-500 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+          <div className="w-16 h-16 border-4 border-purple-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
           <p className="text-slate-600">Kurs wird geladen...</p>
           <p className="text-xs text-slate-400 mt-2">Course ID: {courseId}</p>
         </div>
@@ -368,16 +326,17 @@ export default function DynamicCoursePage() {
   }
 
   const completedModules =
-    course.modules.filter((m) => {
+    course?.modules.filter((m) => {
       const videoCompleted = videoStates[m.id]?.completed || false
       const quizCompleted = quizStates[m.id]?.completed || false
       return videoCompleted && quizCompleted
     }).length || 0
 
-  const totalModules = course.modules.length || 0
+  const totalModules = course?.modules.length || 0
   const progressPercentage = totalModules > 0 ? (completedModules / totalModules) * 100 : 0
+
   const totalDurationMinutes =
-    course.modules.reduce((total, module) => {
+    course?.modules.reduce((total, module) => {
       const duration = module.duration.replace(/[^\d]/g, "")
       return total + (Number.parseInt(duration) || 0)
     }, 0) || 0
@@ -404,7 +363,7 @@ export default function DynamicCoursePage() {
               height={45}
               className="h-6 w-auto drop-shadow-lg"
               onError={(e) => {
-                (e.currentTarget as HTMLImageElement).style.display = "none"
+                ;(e.currentTarget as HTMLImageElement).style.display = "none"
               }}
             />
             <span className="text-sm font-bold text-slate-800">Sales Academy</span>
@@ -420,19 +379,19 @@ export default function DynamicCoursePage() {
             <div className="flex items-center gap-4 mb-4">
               <div className="w-16 h-16 flex items-center justify-center">
                 <Image
-                  src={course.logo || "/placeholder.svg"}
-                  alt={course.title || "Kurs"}
+                  src={course?.logo || "/placeholder.svg"}
+                  alt={course?.title || "Kurs"}
                   width={64}
                   height={64}
                   className="w-full h-full object-contain drop-shadow-lg"
                   onError={(e) => {
-                    (e.currentTarget as HTMLImageElement).src = "/placeholder.svg?height=64&width=64&text=Logo"
+                    ;(e.currentTarget as HTMLImageElement).src = "/placeholder.svg?height=64&width=64&text=Logo"
                   }}
                 />
               </div>
               <div>
-                <CardTitle className="text-3xl font-bold text-slate-800">{course.title || "Kurs"}</CardTitle>
-                <p className="text-slate-600 font-light mt-1">{course.description || "Kursbeschreibung"}</p>
+                <CardTitle className="text-3xl font-bold text-slate-800">{course?.title || "Kurs"}</CardTitle>
+                <p className="text-slate-600 font-light mt-1">{course?.description || "Kursbeschreibung"}</p>
               </div>
             </div>
           </CardHeader>
@@ -471,7 +430,7 @@ export default function DynamicCoursePage() {
               </div>
               <div className="w-full bg-slate-200 rounded-full h-3 overflow-hidden mb-2">
                 <div
-                  className={`bg-gradient-to-r ${course.gradient || "from-slate-500 to-slate-600"} h-3 rounded-full transition-all duration-500 shadow-sm`}
+                  className={`bg-gradient-to-r ${course?.gradient || "from-slate-500 to-slate-600"} h-3 rounded-full transition-all duration-500 shadow-sm`}
                   style={{ width: `${progressPercentage}%` }}
                 />
               </div>
@@ -500,7 +459,7 @@ export default function DynamicCoursePage() {
 
           {course.modules.length === 0 ? (
             <div className="text-center py-8">
-              <div className="w-16 h-16 border-4 border-purple-500 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+              <div className="w-16 h-16 border-4 border-purple-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
               <p className="text-slate-600">Module werden aus der Courses API geladen...</p>
               <p className="text-xs text-slate-400 mt-2">Course ID: {courseId}</p>
             </div>
@@ -618,7 +577,6 @@ export default function DynamicCoursePage() {
                                     onEnded={() => handleVideoEnded(module.id)}
                                   />
 
-                                  {/* Video Completion Button */}
                                   <div className="mt-6 text-center">
                                     {isVideoCompleted ? (
                                       <div className="flex items-center justify-center gap-3 p-4 bg-green-50 border border-green-200 rounded-xl">
