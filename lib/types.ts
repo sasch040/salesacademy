@@ -17,4 +17,3 @@ export interface ModuleProgress {
   videoWatched: boolean
   users_permissions_user: number // oder string
 }
-
