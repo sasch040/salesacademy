@@ -26,10 +26,8 @@ export async function GET(req: NextRequest) {
 
     const { searchParams } = new URL(req.url);
     const moduleId = searchParams.get("moduleId") || undefined;
-    // userEmail / courseId werden ignoriert – User kommt aus dem Cookie.
-    // Wenn du später nach Kurs filtern willst, braucht Module -> Course Relation.
 
-    // ✅ Strapi v4: verschachteltes populate statt Komma
+    // ✅ Strapi v4: verschachteltes populate, NICHT "module,users_permissions_user"
     const qs = new URLSearchParams();
     qs.set("populate[module][fields][0]", "id");
     qs.set("populate[users_permissions_user][fields][0]", "email");
@@ -43,11 +41,10 @@ export async function GET(req: NextRequest) {
       headers: { Authorization: `Bearer ${STRAPI_API_TOKEN}` },
       cache: "no-store",
     });
-
     const raw = await r.json();
     if (!r.ok) return j(r.status, { error: "Fetch failed", details: raw });
 
-    // Schlankes, frontendfreundliches Format
+    // flach fürs Frontend
     const data = (raw?.data || []).map((row: any) => ({
       id: row?.id,
       moduleId: row?.attributes?.module?.data?.id ?? null,
@@ -70,13 +67,14 @@ export async function POST(req: NextRequest) {
     if (!me?.id) return j(401, { error: "Unauthorized" });
 
     const body = await req.json().catch(() => ({}));
-    // 🔧 tolerant: moduleId ODER module_id akzeptieren
+
+    // 👇 tolerant: moduleId ODER module_id
     const moduleId = Number(body?.moduleId ?? body?.module_id);
     const videoWatched = Boolean(body?.videoWatched);
     const quizCompleted = Boolean(body?.quizCompleted);
     if (!moduleId) return j(400, { error: "moduleId required" });
 
-    // ✅ Lookup ohne Komma-populate
+    // schon vorhanden?
     const findQs = new URLSearchParams();
     findQs.set("populate[module][fields][0]", "id");
     findQs.set("populate[users_permissions_user][fields][0]", "id");
@@ -90,7 +88,8 @@ export async function POST(req: NextRequest) {
 
     const completed = videoWatched && quizCompleted;
 
-    const payload = {
+    // Upsert-Payload
+    const createPayload = {
       data: {
         users_permissions_user: me.id, // Relation per ID
         module: moduleId,              // Relation per ID
@@ -101,9 +100,10 @@ export async function POST(req: NextRequest) {
     };
 
     if (Array.isArray(fjson.data) && fjson.data.length > 0) {
+      // Update
       const existing = fjson.data[0];
 
-      // Sicherheits-Check (Owner)
+      // Safety: Owner check
       const ownerId = existing?.attributes?.users_permissions_user?.data?.id;
       if (ownerId !== me.id) return j(403, { error: "Forbidden" });
 
@@ -138,7 +138,7 @@ export async function POST(req: NextRequest) {
         Authorization: `Bearer ${STRAPI_API_TOKEN}`,
         "Content-Type": "application/json",
       },
-      body: JSON.stringify(payload),
+      body: JSON.stringify(createPayload),
     });
     const cjson = await crt.json();
     if (!crt.ok) return j(crt.status, { error: "Create failed", details: cjson });
