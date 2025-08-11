@@ -1,7 +1,21 @@
-export const API_URL = process.env.NEXT_PUBLIC_API_URL || "https://strapi-elearning-8rff.onrender.com"
+// lib/auth.ts (client-safe)
 
-// Diese Token-Funktionen werden nicht mehr gebraucht – Cookies übernehmen das
-// Falls du noch alte Komponenten nutzt, bitte auch dort auf Cookie-Auth umstellen
+export async function me() {
+  const res = await fetch("/api/auth/me", { credentials: "include", cache: "no-store" })
+  if (!res.ok) throw new Error("Nicht eingeloggt")
+  return res.json() // => { user: { ... } }
+}
 
-// Hinweis: Nur behalten, wenn du clientseitige JWT-Verwendung wirklich brauchst
-// Andernfalls kannst du alles außer `API_URL` löschen.
+export async function login(email: string, password: string) {
+  const res = await fetch("/api/auth/login", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    credentials: "include",
+    body: JSON.stringify({ email, password }),
+  })
+  return res.json()
+}
+
+export async function logout() {
+  await fetch("/api/auth/logout", { method: "POST", credentials: "include" })
+}
