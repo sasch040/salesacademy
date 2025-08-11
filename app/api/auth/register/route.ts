@@ -1,6 +1,7 @@
-import { type NextRequest, NextResponse } from "next/server"
+// app/api/auth/register/route.ts
+import { NextRequest, NextResponse } from "next/server"
 
-const STRAPI_URL = "https://strapi-elearning-8rff.onrender.com"
+const STRAPI_URL = process.env.NEXT_PUBLIC_STRAPI_URL || "https://strapi-elearning-8rff.onrender.com"
 
 export async function POST(request: NextRequest) {
   try {
@@ -9,136 +10,96 @@ export async function POST(request: NextRequest) {
     if (!email || !password) {
       return NextResponse.json({ error: "Email und Passwort sind erforderlich" }, { status: 400 })
     }
-
     if (password.length < 6) {
       return NextResponse.json({ error: "Passwort muss mindestens 6 Zeichen lang sein" }, { status: 400 })
     }
 
-    console.log("🔍 Attempting registration for:", email)
-    console.log("🌐 Strapi URL:", STRAPI_URL)
+    const controller = new AbortController()
+    const timeoutId = setTimeout(() => controller.abort(), 10000)
 
+    let strapiRes: Response
     try {
-      const strapiUrl = `${STRAPI_URL}/api/auth/local/register`
-      console.log("📡 Registering at:", strapiUrl)
-
-      const controller = new AbortController()
-      const timeoutId = setTimeout(() => controller.abort(), 10000)
-
-      const response = await fetch(strapiUrl, {
+      strapiRes = await fetch(`${STRAPI_URL}/api/auth/local/register`, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          username: email, // Strapi verwendet username
-          email,
-          password,
-          redirectUrl: "https://v0-e-learning-platform-design-seven.vercel.app/auth/email-confirmed?token={{ .TokenHash }}", // ✅ HIER hinzufügen
-        }),
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ username: email, email, password }),
         signal: controller.signal,
       })
-
+    } catch (e: any) {
       clearTimeout(timeoutId)
+      const isTimeout = e?.name === "AbortError"
+      return NextResponse.json(
+        { error: isTimeout ? "Registrierung dauert zu lange. Bitte erneut versuchen." : "Strapi nicht erreichbar." },
+        { status: 503 }
+      )
+    } finally {
+      clearTimeout(timeoutId)
+    }
 
-       let data: any = null;
-      try {
-        data = await response.json();
-      } catch {
-        data = null;
+    const contentType = strapiRes.headers.get("content-type") || ""
+    if (!contentType.includes("application/json")) {
+      const text = await strapiRes.text().catch(() => "")
+      return NextResponse.json(
+        { error: "Ungültige Antwort von Strapi", details: text.slice(0, 300) },
+        { status: 502 }
+      )
+    }
+
+    const data: any = await strapiRes.json()
+
+    if (!strapiRes.ok) {
+      const msg = data?.error?.message || data?.message || "Registrierung fehlgeschlagen"
+      const details = data?.error?.details || data?.data || null
+      const alreadyTaken =
+        typeof msg === "string" &&
+        (msg.toLowerCase().includes("already taken") ||
+         (msg.toLowerCase().includes("email") && msg.toLowerCase().includes("unique")))
+
+      if (strapiRes.status === 400 && alreadyTaken) {
+        return NextResponse.json({ error: "Diese E-Mail-Adresse ist bereits registriert" }, { status: 400 })
       }
+      return NextResponse.json({ error: msg, details }, { status: strapiRes.status || 500 })
+    }
 
-      if (!response.ok) {
-        console.error("❌ Strapi Registration Error:", response.status, data);
-
-        const msg = data?.error?.message || data?.message || "Registrierung fehlgeschlagen";
-        const details = data?.error?.details || data?.data || null;
-
-        const alreadyTaken =
-          typeof msg === "string" &&
-          (msg.includes("already taken") ||
-           msg.toLowerCase().includes("email") && msg.toLowerCase().includes("unique"));
-
-        if (response.status === 400 && alreadyTaken) {
-          return NextResponse.json({ error: "Diese E-Mail-Adresse ist bereits registriert" }, { status: 400 });
-        }
-
-        return NextResponse.json({ error: msg, details }, { status: response.status || 500 });
-      }
-
-      console.log("✅ Strapi registration successful");
-
-      if (data?.user && !data?.jwt) {
-        console.log("ℹ️ Email confirmation flow detected for:", data.user.email);
-        return NextResponse.json(
-          {
-            success: true,
-            requiresEmailConfirmation: true,
-            message: "Registrierung erfolgreich. Bitte bestätige deine E‑Mail, um dich anzumelden.",
-            user: {
-              email: data.user.email,
-              confirmed: Boolean(data.user.confirmed),
-              id: data.user.id,
-            },
-          },
-          { status: 201 }
-        );
-      }
-
-      if (data?.user && data?.jwt) {
-        console.log("👤 User registered (no email confirmation required):", data.user.email);
-        return NextResponse.json(
-          {
-            success: true,
-            message: "Registrierung erfolgreich",
-            user: {
-              email: data.user.email,
-              role: data.user.role || "student",
-            },
-            jwt: data.jwt,
-          },
-          { status: 201 }
-        );
-      }
-
-      console.warn("⚠️ Unerwartete Strapi-Antwortstruktur:", data);
+    // E-Mail-Bestätigung aktiviert: Strapi liefert user ohne jwt
+    if (data?.user && !data?.jwt) {
       return NextResponse.json(
         {
           success: true,
-          message: "Registrierung abgeschlossen. Prüfe bitte deine E‑Mail zur Bestätigung.",
-          raw: data,
+          requiresEmailConfirmation: true,
+          message: "Registrierung erfolgreich. Bitte bestätige deine E-Mail.",
+          user: { id: data.user.id, email: data.user.email, confirmed: !!data.user.confirmed },
         },
         { status: 201 }
-      );
-    } catch (strapiError: unknown) {
-      const err = strapiError as Error
-      console.error("🚨 Strapi registration failed:", err.message)
-
-      if (err.name === "AbortError") {
-        return NextResponse.json(
-          { error: "Registrierung dauert zu lange. Bitte versuchen Sie es erneut." },
-          { status: 408 },
-        )
-      }
-
-      return NextResponse.json(
-        {
-          error: "Registrierung fehlgeschlagen. Bitte versuchen Sie es später erneut.",
-          details: err.message,
-        },
-        { status: 503 },
       )
     }
-  } catch (error) {
-    const e = error as Error
-    console.error("💥 Registration API critical error:", e)
 
+    // Falls Bestätigung aus ist (selten): direkt eingeloggt
+    if (data?.user && data?.jwt) {
+      return NextResponse.json(
+        {
+          success: true,
+          message: "Registrierung erfolgreich",
+          user: { email: data.user.email, role: data.user.role || "student" },
+          jwt: data.jwt,
+        },
+        { status: 201 }
+      )
+    }
+
+    // Fallback
+    return NextResponse.json(
+      { success: true, message: "Registrierung abgeschlossen. Prüfe bitte deine E-Mail zur Bestätigung.", raw: data },
+      { status: 201 }
+    )
+  } catch (e: any) {
     return NextResponse.json(
       {
         error: "Interner Serverfehler bei der Registrierung",
-        details: e.message || "Unbekannter Fehler",
+        details: e?.message || "Unbekannter Fehler",
         timestamp: new Date().toISOString(),
       },
-      { status: 500 },
+      { status: 500 }
     )
   }
 }
