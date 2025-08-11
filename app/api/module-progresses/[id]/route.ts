@@ -19,7 +19,6 @@ async function me() {
 async function fetchOne(id: string) {
   const qs = new URLSearchParams();
   qs.set("populate[users_permissions_user][fields][0]", "id");
-  qs.set("populate[user][fields][0]", "id");
   qs.set("populate[module][fields][0]", "id");
 
   const r = await fetch(`${STRAPI_URL}/api/module-progresses/${id}?${qs.toString()}`, {
@@ -38,14 +37,10 @@ export async function GET(_req: NextRequest, { params }: { params: { id: string 
   const { ok, status, data } = await fetchOne(params.id);
   if (!ok) return j(status, { error: status === 404 ? "Not found" : "Fetch failed", details: data });
 
+  const ownerId = Number(data?.data?.attributes?.users_permissions_user?.data?.id ?? NaN);
   const meId = Number(user.id);
-  const ownerId =
-    data?.data?.attributes?.users_permissions_user?.data?.id ??
-    data?.data?.attributes?.user?.data?.id;
-  const ownerNum = ownerId == null ? null : Number(ownerId);
-
-  if (ownerNum != null && ownerNum !== meId) {
-    return j(403, { error: "Forbidden (owner mismatch)", details: { ownerId: ownerNum, meId } });
+  if (!Number.isNaN(ownerId) && ownerId !== meId) {
+    return j(403, { error: "Forbidden (owner mismatch)", details: { ownerId, meId } });
   }
 
   return j(200, { data: data.data });
@@ -59,14 +54,10 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
   const check = await fetchOne(params.id);
   if (!check.ok) return j(check.status, { error: "Not found", details: check.data });
 
+  const ownerId = Number(check.data?.data?.attributes?.users_permissions_user?.data?.id ?? NaN);
   const meId = Number(user.id);
-  const ownerId =
-    check.data?.data?.attributes?.users_permissions_user?.data?.id ??
-    check.data?.data?.attributes?.user?.data?.id;
-  const ownerNum = ownerId == null ? null : Number(ownerId);
-
-  if (ownerNum != null && ownerNum !== meId) {
-    return j(403, { error: "Forbidden (owner mismatch)", details: { ownerId: ownerNum, meId } });
+  if (!Number.isNaN(ownerId) && ownerId !== meId) {
+    return j(403, { error: "Forbidden (owner mismatch)", details: { ownerId, meId } });
   }
 
   const body = await req.json().catch(() => ({}));
@@ -88,14 +79,10 @@ export async function DELETE(_req: NextRequest, { params }: { params: { id: stri
   const check = await fetchOne(params.id);
   if (!check.ok) return j(check.status, { error: "Not found", details: check.data });
 
+  const ownerId = Number(check.data?.data?.attributes?.users_permissions_user?.data?.id ?? NaN);
   const meId = Number(user.id);
-  const ownerId =
-    check.data?.data?.attributes?.users_permissions_user?.data?.id ??
-    check.data?.data?.attributes?.user?.data?.id;
-  const ownerNum = ownerId == null ? null : Number(ownerId);
-
-  if (ownerNum != null && ownerNum !== meId) {
-    return j(403, { error: "Forbidden (owner mismatch)", details: { ownerId: ownerNum, meId } });
+  if (!Number.isNaN(ownerId) && ownerId !== meId) {
+    return j(403, { error: "Forbidden (owner mismatch)", details: { ownerId, meId } });
   }
 
   const del = await fetch(`${STRAPI_URL}/api/module-progresses/${params.id}`, {
