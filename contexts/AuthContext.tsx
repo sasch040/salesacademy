@@ -1,12 +1,6 @@
 "use client"
 
-import React, {
-  createContext,
-  useState,
-  useContext,
-  useEffect,
-  type ReactNode,
-} from "react"
+import { createContext, useState, useContext, useEffect, type ReactNode } from "react"
 import { useRouter } from "next/navigation"
 import type { User } from "@/lib/types"
 
@@ -14,15 +8,13 @@ interface AuthContextType {
   user: User | null
   loading: boolean
   login: (identifier: string, password: string) => Promise<void>
-  register: (
-    username: string,
-    email: string,
-    password: string
-  ) => Promise<{ requiresEmailConfirmation: boolean }>
+  register: (username: string, email: string, password: string) => Promise<{ requiresEmailConfirmation: boolean }>
   logout: () => Promise<void>
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
+
+export { AuthContext }
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null)
@@ -81,19 +73,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }
 
   // 📝 Registrierung – direkter Aufruf an Strapi
-  const register = async (
-    username: string,
-    email: string,
-    password: string
-  ) => {
-    const res = await fetch(
-      `${process.env.NEXT_PUBLIC_STRAPI_URL}/api/auth/local/register`,
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ username, email, password }),
-      }
-    )
+  const register = async (username: string, email: string, password: string) => {
+    const res = await fetch(`${process.env.NEXT_PUBLIC_STRAPI_URL}/api/auth/local/register`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ username, email, password }),
+    })
 
     const contentType = res.headers.get("content-type")
     if (!res.ok) {
@@ -123,9 +108,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }
 
   return (
-    <AuthContext.Provider
-      value={{ user, loading, login, register, logout }}
-    >
+    <AuthContext.Provider value={{ user, loading, login, register, logout }}>
       {!loading && children}
     </AuthContext.Provider>
   )
