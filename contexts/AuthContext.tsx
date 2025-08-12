@@ -1,83 +1,123 @@
-"use client";
+"use client"
 
-import { createContext, useState, useContext, useEffect, type ReactNode } from "react";
-import { useRouter } from "next/navigation";
-import type { User } from "@/lib/types";
+import { createContext, useState, useContext, useEffect, type ReactNode } from "react"
+import { useRouter } from "next/navigation"
+import type { User } from "@/lib/types"
 
 interface AuthContextType {
-  user: User | null;
-  loading: boolean;
-  login: (email: string, password: string) => Promise<void>;
-  register: (email: string, password: string) => Promise<{ requiresEmailConfirmation: boolean }>;
-  logout: () => Promise<void>;
+  user: User | null
+  loading: boolean
+  login: (identifier: string, password: string) => Promise<void>
+  register: (username: string, email: string, password: string) => Promise<{ requiresEmailConfirmation: boolean }>
+  logout: () => Promise<void>
 }
 
-const AuthContext = createContext<AuthContextType | undefined>(undefined);
-export { AuthContext };
+const AuthContext = createContext<AuthContextType | undefined>(undefined)
+
+export { AuthContext }
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
-  const [user, setUser] = useState<User | null>(null);
-  const [loading, setLoading] = useState(true);
-  const router = useRouter();
+  const [user, setUser] = useState<User | null>(null)
+  const [loading, setLoading] = useState(true)
+  const router = useRouter()
 
-  // Me laden per HttpOnly Cookie
+  // ⏳ Lädt User über HttpOnly-Cookie beim ersten Seitenaufruf
   useEffect(() => {
-    (async () => {
+    const loadUser = async () => {
       try {
-        const res = await fetch("/api/auth/me", { method: "GET", credentials: "include", cache: "no-store" });
+        const res = await fetch("/api/auth/me", {
+          method: "GET",
+          credentials: "include",
+        })
         if (res.ok) {
-          const data = await res.json();
-          setUser(data.user ?? null);
+          const data = await res.json()
+          setUser(data.user)
         } else {
-          setUser(null);
+          setUser(null)
         }
       } catch {
-        setUser(null);
+        setUser(null)
       } finally {
-        setLoading(false);
+        setLoading(false)
       }
-    })();
-  }, []);
+    }
 
-  const login = async (email: string, password: string) => {
+    loadUser()
+  }, [])
+
+  // 🔐 Login – setzt HttpOnly-Cookie via interne API
+  const login = async (identifier: string, password: string) => {
     const res = await fetch("/api/auth/login", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       credentials: "include",
-      body: JSON.stringify({ email, password }),
-    });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data?.error || "Login fehlgeschlagen");
-    setUser(data.user);
-  };
+      body: JSON.stringify({ identifier, password }),
+    })
 
-  const register = async (email: string, password: string) => {
-    const res = await fetch("/api/auth/register", {
+    const contentType = res.headers.get("content-type")
+    if (!res.ok) {
+      let errorMessage = "Login fehlgeschlagen"
+      if (contentType?.includes("application/json")) {
+        const errData = await res.json()
+        errorMessage = errData?.error || errorMessage
+      } else {
+        const text = await res.text()
+        errorMessage = text || errorMessage
+      }
+      throw new Error(errorMessage)
+    }
+
+    const data = await res.json()
+    setUser(data.user)
+    router.replace("/dashboard")
+  }
+
+  // 📝 Registrierung – direkter Aufruf an Strapi
+  const register = async (username: string, email: string, password: string) => {
+    const res = await fetch(`${process.env.NEXT_PUBLIC_STRAPI_URL}/api/auth/local/register`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      credentials: "include",
-      body: JSON.stringify({ email, password }),
-    });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data?.error || "Registrierung fehlgeschlagen");
-    return { requiresEmailConfirmation: Boolean(data.requiresEmailConfirmation || !data.jwt) };
-  };
+      body: JSON.stringify({ username, email, password }),
+    })
 
+    const contentType = res.headers.get("content-type")
+    if (!res.ok) {
+      let errorMessage = "Registrierung fehlgeschlagen"
+      if (contentType?.includes("application/json")) {
+        const errData = await res.json()
+        errorMessage = errData?.error?.message || errorMessage
+      } else {
+        const text = await res.text()
+        errorMessage = text || errorMessage
+      }
+      throw new Error(errorMessage)
+    }
+
+    const data = await res.json()
+    return { requiresEmailConfirmation: true }
+  }
+
+  // 🚪 Logout – entfernt Cookie via API
   const logout = async () => {
-    await fetch("/api/auth/logout", { method: "POST", credentials: "include" });
-    setUser(null);
-    router.push("/auth/login");
-  };
+    await fetch("/api/auth/logout", {
+      method: "POST",
+      credentials: "include",
+    })
+    setUser(null)
+    router.push("/auth/login")
+  }
 
   return (
     <AuthContext.Provider value={{ user, loading, login, register, logout }}>
       {!loading && children}
     </AuthContext.Provider>
-  );
-};
+  )
+}
 
 export function useAuth(): AuthContextType {
-  const ctx = useContext(AuthContext);
-  if (!ctx) throw new Error("useAuth must be used within an AuthProvider");
-  return ctx;
+  const context = useContext(AuthContext)
+  if (!context) {
+    throw new Error("useAuth must be used within an AuthProvider")
+  }
+  return context
 }

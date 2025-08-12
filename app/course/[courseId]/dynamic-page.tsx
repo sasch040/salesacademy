@@ -20,10 +20,7 @@ import Link from "next/link"
 import Image from "next/image"
 import { YouTubePlayer } from "@/components/youtube-player"
 
-// ✅ Progress-Helpers (gleiche wie in der normalen Course-Page)
-import { getProgressList, saveProgress } from "@/lib/progress"
-
-// Types
+// Types für ID-basierte Daten
 interface DynamicModule {
   id: number
   title: string
@@ -58,12 +55,11 @@ export default function DynamicCoursePage() {
   const [course, setCourse] = useState<DynamicCourse | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [userEmail, setUserEmail] = useState("")
   const [expandedModule, setExpandedModule] = useState<number | null>(null)
-
   const [videoStates, setVideoStates] = useState<{
     [key: number]: { isPlaying: boolean; currentTime: number; duration: number; completed: boolean }
   }>({})
-
   const [quizStates, setQuizStates] = useState<{
     [key: number]: {
       isOpen: boolean
@@ -80,125 +76,125 @@ export default function DynamicCoursePage() {
   const params = useParams<{ courseId: string }>()
   const courseId = params.courseId
 
-  // ---- Data fetching -------------------------------------------------------
-
-  // Kurs laden (über deine interne API)
+  // Course loading über direkte API
   useEffect(() => {
     const loadCourse = async () => {
       try {
         setLoading(true)
+        console.log("🔍 === DYNAMIC COURSE PAGE: Loading course ===")
+        console.log("🎯 Course ID from URL:", courseId)
+
+        // Direkte Course API Abfrage
+        console.log("📡 Loading course data via direct Course API")
         const response = await fetch(`/api/courses/${courseId}`, {
-          headers: { "Content-Type": "application/json" },
+          headers: {
+            "Content-Type": "application/json",
+          },
         })
-        if (!response.ok) {
-          const err = await response.json().catch(() => ({}))
-          setError(err?.error || "Kurs konnte nicht geladen werden")
-          return
+
+        console.log("📡 Course API Response Status:", response.status)
+
+        if (response.ok) {
+          const courseData = await response.json()
+          console.log("✅ Course API Data Received")
+          console.log("📝 Course Title:", courseData.title)
+          console.log("🔢 Course ID:", courseData.id)
+          console.log("📚 Modules Count:", courseData.modules?.length || 0)
+
+          setCourse(courseData)
+          console.log("✅ Course state updated")
+        } else {
+          const errorData = await response.json()
+          console.error("❌ Course API failed:", errorData)
+          setError(errorData.error || "Kurs konnte nicht geladen werden")
         }
-        const courseData = await response.json()
-        setCourse(courseData)
       } catch (err) {
+        console.error("💥 Course loading error:", err)
         setError("Fehler beim Laden des Kurses")
       } finally {
         setLoading(false)
+        console.log("🏁 Course loading finished")
       }
     }
 
-    if (courseId) loadCourse()
-    else {
+    if (courseId) {
+      console.log("🚀 Starting course load for ID:", courseId)
+      loadCourse()
+    } else {
+      console.error("❌ No courseId provided")
       setError("Keine Kurs-ID gefunden")
       setLoading(false)
     }
-  }, [courseId])
-
-  // Auth prüfen (redirect wenn nicht eingeloggt)
+    
   useEffect(() => {
     const checkAuth = async () => {
       try {
-        const res = await fetch("/api/auth/me", { method: "GET", credentials: "include" })
+        const res = await fetch("/api/auth/me", {
+          method: "GET",
+          credentials: "include", // wichtig für Cookie-Auth!
+        })
+
         if (!res.ok) {
+          console.warn("⛔ Nicht eingeloggt – Weiterleitung zum Login")
           router.push("/auth/login")
+          return
         }
-      } catch {
+
+        const data = await res.json()
+        console.log("✅ Authentifizierter User:", data.user)
+        setUserEmail(data.user?.email || "")
+      } catch (err) {
+        console.error("💥 Fehler bei Auth-Check:", err)
         router.push("/auth/login")
       }
     }
+
     checkAuth()
   }, [router])
 
-  // Fortschritt hydratisieren (Video/Quiz-Flags je Modul)
-  useEffect(() => {
-    if (!course) return
-    ;(async () => {
-      try {
-        const list = await getProgressList() // alle Progress-Einträge des eingeloggten Users
-        const byModule = new Map(list.map((p) => [p.moduleId, p]))
 
-        const vs: typeof videoStates = {}
-        const qs: typeof quizStates = {}
-
-        course.modules.forEach((m) => {
-          const p = byModule.get(m.id)
-          vs[m.id] = {
-            isPlaying: false,
-            currentTime: 0,
-            duration: 0,
-            completed: !!p?.videoWatched,
-          }
-          qs[m.id] = {
-            isOpen: false,
-            currentQuestion: 0,
-            answers: [],
-            score: null,
-            completed: !!p?.quizCompleted,
-            showFeedback: false,
-            lastAnswerCorrect: false,
-          }
-        })
-
-        setVideoStates(vs)
-        setQuizStates(qs)
-      } catch (e) {
-        console.error("⚠️ Progress laden fehlgeschlagen:", e)
-      }
-    })()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [course?.id])
-
-  // ---- UI-Handler ----------------------------------------------------------
-
+  // ID-basierte Funktionen
   const toggleModule = (moduleId: number) => {
+    console.log("🔄 Toggling module:", moduleId)
     setExpandedModule((prev) => (prev === moduleId ? null : moduleId))
   }
 
   const handleVideoPlay = (moduleId: number) => {
+    console.log("🎥 Video started for module:", moduleId)
     setVideoStates((prev) => ({
       ...prev,
-      [moduleId]: { ...prev[moduleId], isPlaying: true },
+      [moduleId]: {
+        ...prev[moduleId],
+        isPlaying: true,
+      },
     }))
   }
 
   const handleVideoPause = (moduleId: number) => {
+    console.log("⏸️ Video paused for module:", moduleId)
     setVideoStates((prev) => ({
       ...prev,
-      [moduleId]: { ...prev[moduleId], isPlaying: false },
+      [moduleId]: {
+        ...prev[moduleId],
+        isPlaying: false,
+      },
     }))
   }
 
-  // ✅ Video-Ende -> lokal + Server via saveProgress
-  const handleVideoEnded = async (moduleId: number) => {
+  const handleVideoEnded = (moduleId: number) => {
+    console.log("✅ Video completed for module:", moduleId)
     setVideoStates((prev) => ({
       ...prev,
-      [moduleId]: { ...prev[moduleId], isPlaying: false, completed: true },
+      [moduleId]: {
+        ...prev[moduleId],
+        isPlaying: false,
+        completed: true,
+      },
     }))
-    try {
-      await saveProgress(moduleId, { videoWatched: true }) // schickt { moduleId, videoWatched: true }
-    } catch (e) {
-      console.error("💥 Fortschritt speichern (Video) fehlgeschlagen:", e)
-    }
   }
 
   const startQuiz = (moduleId: number) => {
+    console.log("🧠 Starting quiz for module:", moduleId)
     setQuizStates((prev) => ({
       ...prev,
       [moduleId]: {
@@ -214,6 +210,7 @@ export default function DynamicCoursePage() {
   }
 
   const answerQuestion = (moduleId: number, answerIndex: number) => {
+    console.log("📝 Answering question for module:", moduleId, "answer:", answerIndex)
     const module = course?.modules.find((m) => m.id === moduleId)
     if (!module) return
 
@@ -221,61 +218,69 @@ export default function DynamicCoursePage() {
     const currentQuestion = module.quiz.questions[currentQuizState?.currentQuestion || 0]
     const isCorrect = answerIndex === currentQuestion?.correctAnswer
 
+    console.log(`📝 Question: "${currentQuestion.question}"`)
+    console.log(`📝 Selected: "${currentQuestion.options[answerIndex]}" (index: ${answerIndex})`)
+    console.log(
+      `📝 Correct: "${currentQuestion.options[currentQuestion.correctAnswer]}" (index: ${currentQuestion.correctAnswer})`,
+    )
+    console.log(`📝 Is Correct: ${isCorrect}`)
+
     setQuizStates((prev) => ({
       ...prev,
-      [moduleId]: { ...prev[moduleId], showFeedback: true, lastAnswerCorrect: isCorrect },
+      [moduleId]: {
+        ...prev[moduleId],
+        showFeedback: true,
+        lastAnswerCorrect: isCorrect,
+      },
     }))
 
-    setTimeout(() => {
-      const newAnswers = [...(currentQuizState?.answers || [])]
-      newAnswers[currentQuizState?.currentQuestion || 0] = answerIndex
+    setTimeout(
+      () => {
+        const newAnswers = [...(currentQuizState?.answers || [])]
+        newAnswers[currentQuizState?.currentQuestion || 0] = answerIndex
 
-      const isLastQuestion = (currentQuizState?.currentQuestion || 0) >= module.quiz.questions.length - 1
+        const isLastQuestion = (currentQuizState?.currentQuestion || 0) >= module.quiz.questions.length - 1
 
-      if (isLastQuestion) {
-        const correctAnswers = newAnswers.reduce((count, answer, index) => {
-          return answer === module.quiz.questions[index].correctAnswer ? count + 1 : count
-        }, 0)
-        const score = Math.round((correctAnswers / module.quiz.questions.length) * 100)
+        if (isLastQuestion) {
+          const correctAnswers = newAnswers.reduce((count, answer, index) => {
+            return answer === module.quiz.questions[index].correctAnswer ? count + 1 : count
+          }, 0)
+          const score = Math.round((correctAnswers / module.quiz.questions.length) * 100)
 
-        setQuizStates((prev) => ({
-          ...prev,
-          [moduleId]: {
-            ...prev[moduleId],
-            answers: newAnswers,
-            score,
-            completed: true,
-            showFeedback: false,
-            lastAnswerCorrect: isCorrect,
-          },
-        }))
+          console.log(
+            `🎯 Quiz completed for module ${moduleId}: ${correctAnswers}/${module.quiz.questions.length} correct (${score}%)`,
+          )
 
-        // ✅ bestanden -> auf dem Server markieren
-        if (score >= module.quiz.passingScore) {
-          ;(async () => {
-            try {
-              await saveProgress(moduleId, { quizCompleted: true }) // schickt { moduleId, quizCompleted: true }
-            } catch (e) {
-              console.error("💥 Fortschritt speichern (Quiz) fehlgeschlagen:", e)
-            }
-          })()
+          setQuizStates((prev) => ({
+            ...prev,
+            [moduleId]: {
+              ...prev[moduleId],
+              answers: newAnswers,
+              score,
+              completed: true,
+              showFeedback: false,
+              lastAnswerCorrect: isCorrect,
+            },
+          }))
+        } else {
+          setQuizStates((prev) => ({
+            ...prev,
+            [moduleId]: {
+              ...prev[moduleId],
+              answers: newAnswers,
+              currentQuestion: (prev[moduleId]?.currentQuestion || 0) + 1,
+              showFeedback: false,
+              lastAnswerCorrect: isCorrect,
+            },
+          }))
         }
-      } else {
-        setQuizStates((prev) => ({
-          ...prev,
-          [moduleId]: {
-            ...prev[moduleId],
-            answers: newAnswers,
-            currentQuestion: (prev[moduleId]?.currentQuestion || 0) + 1,
-            showFeedback: false,
-            lastAnswerCorrect: isCorrect,
-          },
-        }))
-      }
-    }, isCorrect ? 1500 : 2500)
+      },
+      isCorrect ? 1500 : 2500,
+    )
   }
 
   const resetQuiz = (moduleId: number) => {
+    console.log("🔄 Resetting quiz for module:", moduleId)
     setQuizStates((prev) => ({
       ...prev,
       [moduleId]: {
@@ -290,10 +295,12 @@ export default function DynamicCoursePage() {
     }))
   }
 
-  const isYouTubeUrl = (url: string) => url.includes("youtube.com") || url.includes("youtu.be")
+  // Hilfsfunktion um zu prüfen ob URL ein YouTube-Link ist
+  const isYouTubeUrl = (url: string) => {
+    return url.includes("youtube.com") || url.includes("youtu.be")
+  }
 
-  // ---- UI ------------------------------------------------------------------
-
+  // Loading State
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 flex items-center justify-center">
@@ -306,6 +313,7 @@ export default function DynamicCoursePage() {
     )
   }
 
+  // Error State
   if (error || !course) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 flex items-center justify-center">
@@ -325,6 +333,7 @@ export default function DynamicCoursePage() {
     )
   }
 
+  // Fortschrittsberechnung
   const completedModules =
     course?.modules.filter((m) => {
       const videoCompleted = videoStates[m.id]?.completed || false
@@ -354,7 +363,7 @@ export default function DynamicCoursePage() {
               Zurück zum Dashboard
             </Button>
           </Link>
-          <div className="w-px h-6 bg-slate-300 mx-2" />
+          <div className="w-px h-6 bg-slate-300 mx-2"></div>
           <div className="flex items-center gap-2">
             <Image
               src="/images/sales-academy-new-logo.png"
@@ -363,7 +372,7 @@ export default function DynamicCoursePage() {
               height={45}
               className="h-6 w-auto drop-shadow-lg"
               onError={(e) => {
-                ;(e.currentTarget as HTMLImageElement).style.display = "none"
+                e.currentTarget.style.display = "none"
               }}
             />
             <span className="text-sm font-bold text-slate-800">Sales Academy</span>
@@ -371,7 +380,7 @@ export default function DynamicCoursePage() {
         </div>
       </header>
 
-      {/* Main */}
+      {/* Main Content */}
       <main className="max-w-5xl mx-auto px-6 py-12">
         {/* Course Overview */}
         <Card className="mb-12 bg-white/70 backdrop-blur-sm border-0 shadow-xl">
@@ -385,7 +394,7 @@ export default function DynamicCoursePage() {
                   height={64}
                   className="w-full h-full object-contain drop-shadow-lg"
                   onError={(e) => {
-                    ;(e.currentTarget as HTMLImageElement).src = "/placeholder.svg?height=64&width=64&text=Logo"
+                    e.currentTarget.src = "/placeholder.svg?height=64&width=64&text=Logo"
                   }}
                 />
               </div>
@@ -432,7 +441,7 @@ export default function DynamicCoursePage() {
                 <div
                   className={`bg-gradient-to-r ${course?.gradient || "from-slate-500 to-slate-600"} h-3 rounded-full transition-all duration-500 shadow-sm`}
                   style={{ width: `${progressPercentage}%` }}
-                />
+                ></div>
               </div>
               <p className="text-sm text-slate-600 font-light">
                 {completedModules} von {totalModules} Modulen abgeschlossen
@@ -453,7 +462,7 @@ export default function DynamicCoursePage() {
           </CardContent>
         </Card>
 
-        {/* Modules */}
+        {/* Modules Section */}
         <div className="space-y-6">
           <h2 className="text-2xl font-bold text-slate-800 mb-8">Kursmodule ({course.modules.length})</h2>
 
@@ -577,6 +586,7 @@ export default function DynamicCoursePage() {
                                     onEnded={() => handleVideoEnded(module.id)}
                                   />
 
+                                  {/* Video Completion Button */}
                                   <div className="mt-6 text-center">
                                     {isVideoCompleted ? (
                                       <div className="flex items-center justify-center gap-3 p-4 bg-green-50 border border-green-200 rounded-xl">
@@ -665,7 +675,7 @@ export default function DynamicCoursePage() {
                                                   100
                                                 }%`,
                                               }}
-                                            />
+                                            ></div>
                                           </div>
                                         </div>
 

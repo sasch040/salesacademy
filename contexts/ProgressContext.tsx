@@ -1,46 +1,39 @@
 'use client';
 
-import React, { createContext, useContext, useEffect, useState } from 'react';
-import type { ModuleProgress } from '@/lib/progress';
-import { getProgressList, saveProgress } from '@/lib/progress';
+import React, { createContext, useContext, useState, useEffect } from 'react';
+import { ModuleProgress } from '@/lib/types';
+import { getProgressByUser, saveProgress, updateProgress } from '@/lib/progress';
 
 interface ProgressContextType {
   progress: ModuleProgress[];
   refreshProgress: () => Promise<void>;
-  // speichert/updatet per moduleId + Patch
-  save: (moduleId: number, patch: { videoWatched?: boolean; quizCompleted?: boolean }) => Promise<void>;
-  update: (moduleId: number, patch: { videoWatched?: boolean; quizCompleted?: boolean }) => Promise<void>;
+  save: (data: Partial<ModuleProgress>) => Promise<void>;
+  update: (moduleId: number, updates: Partial<ModuleProgress>) => Promise<void>;
 }
 
 export const ProgressContext = createContext<ProgressContextType | undefined>(undefined);
 
-export function ProgressProvider({ children }: { children: React.ReactNode }) {
+export const ProgressProvider = ({ children }: { children: React.ReactNode }) => {
   const [progress, setProgress] = useState<ModuleProgress[]>([]);
 
   const refreshProgress = async () => {
     try {
-      const data = await getProgressList(); // liest User aus Cookie, keine Query-Params nötig
+      const data = await getProgressByUser();
       setProgress(data);
     } catch (err) {
       console.error('⚠️ Fortschritt konnte nicht geladen werden:', err);
     }
   };
 
-  const save = async (
-    moduleId: number,
-    patch: { videoWatched?: boolean; quizCompleted?: boolean }
-  ) => {
-    try {
-      await saveProgress(moduleId, patch); // POST /api/module-progresses (upsert)
-    } catch (e) {
-      console.error('💥 Progress save error:', e);
-    } finally {
-      await refreshProgress();
-    }
+  const save = async (data: Partial<ModuleProgress>) => {
+    await saveProgress(data);
+    await refreshProgress();
   };
 
-  // alias – gleiche Signatur wie save
-  const update = save;
+  const update = async (moduleId: number, updates: Partial<ModuleProgress>) => {
+    await updateProgress(moduleId, updates);
+    await refreshProgress();
+  };
 
   useEffect(() => {
     refreshProgress();
@@ -51,11 +44,4 @@ export function ProgressProvider({ children }: { children: React.ReactNode }) {
       {children}
     </ProgressContext.Provider>
   );
-}
-
-// optionaler Hook
-export const useProgress = () => {
-  const ctx = useContext(ProgressContext);
-  if (!ctx) throw new Error('useProgress must be used within ProgressProvider');
-  return ctx;
 };

@@ -1,145 +1,250 @@
-import { NextRequest, NextResponse } from "next/server";
-import { cookies } from "next/headers";
+import { type NextRequest, NextResponse } from "next/server"
 
-const STRAPI_URL = process.env.STRAPI_URL || "https://strapi-elearning-8rff.onrender.com";
-const STRAPI_API_TOKEN = process.env.STRAPI_API_TOKEN;
+const STRAPI_URL = "https://strapi-elearning-8rff.onrender.com"
+const STRAPI_TOKEN = process.env.NEXT_PUBLIC_STRAPI_API_TOKEN
 
-const j = (status: number, body: any) => NextResponse.json(body, { status });
-
-async function getMe() {
-  const jwt = cookies().get("token")?.value;
-  if (!jwt) return null;
-  const r = await fetch(`${STRAPI_URL}/api/users/me`, {
-    headers: { Authorization: `Bearer ${jwt}` },
-    cache: "no-store",
-  });
-  if (!r.ok) return null;
-  return r.json();
-}
-
-export async function GET(req: NextRequest) {
+export async function GET(request: NextRequest) {
   try {
-    if (!STRAPI_API_TOKEN) return j(500, { error: "Server misconfigured (no STRAPI_API_TOKEN)" });
-    const me = await getMe();
-    if (!me?.id) return j(401, { error: "Unauthorized" });
+    const { searchParams } = new URL(request.url)
+    const userEmail = searchParams.get("userEmail")
+    const moduleId = searchParams.get("moduleId")
+    const courseId = searchParams.get("courseId")
 
-    const { searchParams } = new URL(req.url);
-    const moduleId = searchParams.get("moduleId") || undefined;
+    console.log("📡 GET /api/module-progresses")
+    console.log("🔍 Query params:", { userEmail, moduleId, courseId })
 
-    const qs = new URLSearchParams();
-    // ✅ korrektes populate ohne Kommas
-    qs.set("populate[module][fields][0]", "id");
-    qs.set("populate[users_permissions_user][fields][0]", "id");
+    if (!STRAPI_TOKEN) {
+      console.error("❌ Missing STRAPI_TOKEN")
+      return NextResponse.json({ error: "Missing API token" }, { status: 500 })
+    }
 
-    // ✅ einfache Filter (kein $and/$or nötig)
-    qs.set("filters[users_permissions_user][id][$eq]", String(me.id));
-    if (moduleId) qs.set("filters[module][id][$eq]", String(moduleId));
+    // Build Strapi query
+    let strapiQuery = `${STRAPI_URL}/api/module-progresses?populate=*`
 
-    qs.set("pagination[pageSize]", "100");
+    const filters = []
+    if (userEmail) {
+      filters.push(`filters[authorized_user][email][$eq]=${encodeURIComponent(userEmail)}`)
+    }
+    if (moduleId) {
+      filters.push(`filters[module_id][$eq]=${moduleId}`)
+    }
+    if (courseId) {
+      filters.push(`filters[course_id][$eq]=${courseId}`)
+    }
 
-    const url = `${STRAPI_URL}/api/module-progresses?${qs.toString()}`;
-    const r = await fetch(url, {
-      headers: { Authorization: `Bearer ${STRAPI_API_TOKEN}` },
-      cache: "no-store",
-    });
+    if (filters.length > 0) {
+      strapiQuery += "&" + filters.join("&")
+    }
 
-    const raw = await r.json();
-    if (!r.ok) return j(r.status, { error: "Fetch failed", details: raw });
+    console.log("📡 Strapi Query:", strapiQuery)
 
-    const data = (raw?.data || []).map((row: any) => ({
-      id: row?.id,
-      moduleId: row?.attributes?.module?.data?.id ?? null,
-      videoWatched: !!row?.attributes?.videoWatched,
-      quizCompleted: !!row?.attributes?.quizCompleted,
-      completed: !!row?.attributes?.completed,
-    }));
-    return j(200, { data });
-  } catch (e: any) {
-    return j(500, { error: "Internal error", details: e?.message });
+    const response = await fetch(strapiQuery, {
+      headers: {
+        Authorization: `Bearer ${STRAPI_TOKEN}`,
+        "Content-Type": "application/json",
+      },
+    })
+    const data = await response.json()
+    if (!response.ok) {
+      console.error("❌ Strapi API failed:", response.status, data)
+      return NextResponse.json({ error: "Failed to fetch from Strapi" }, { status: response.status })
+    }
+
+    console.log("✅ Strapi response:", data.data?.length || 0, "items")
+
+    // Transform data
+    const transformedData =
+      data.data?.map((item: any) => ({
+        id: item.id,
+        userEmail: item.attributes.authorized_user?.data?.attributes?.email || "",
+        module_id: item.attributes.module_id,
+        course_id: item.attributes.course_id,
+        video_completed: item.attributes.video_completed || false,
+        quiz_completed: item.attributes.quiz_completed || false,
+        completed: item.attributes.completed || false,
+        last_accessed: item.attributes.last_accessed || new Date().toISOString(),
+        completed_at: item.attributes.completed_at,
+      })) || []
+
+    // Group data
+    const byUser: Record<string, any[]> = {}
+    const byModule: Record<string, any[]> = {}
+    const byCourse: Record<string, any[]> = {}
+
+    transformedData.forEach((item: any) => {
+      // By User
+      if (item.userEmail) {
+        if (!byUser[item.userEmail]) byUser[item.userEmail] = []
+        byUser[item.userEmail].push(item)
+      }
+
+      // By Module
+      if (item.module_id) {
+        if (!byModule[item.module_id]) byModule[item.module_id] = []
+        byModule[item.module_id].push(item)
+      }
+
+      // By Course
+      if (item.course_id) {
+        if (!byCourse[item.course_id]) byCourse[item.course_id] = []
+        byCourse[item.course_id].push(item)
+      }
+    })
+
+    return NextResponse.json({
+      data: transformedData,
+      byUser,
+      byModule,
+      byCourse,
+      meta: {
+        total: transformedData.length,
+        filters: { userEmail, moduleId, courseId },
+      },
+    })
+  } catch (error) {
+    console.error("💥 Error in GET /api/module-progresses:", error)
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 })
   }
 }
 
-export async function POST(req: NextRequest) {
+export async function POST(request: NextRequest) {
   try {
-    if (!STRAPI_API_TOKEN) return j(500, { error: "Server misconfigured (no STRAPI_API_TOKEN)" });
-    const me = await getMe();
-    if (!me?.id) return j(401, { error: "Unauthorized" });
+    const body = await request.json()
+    console.log("📡 POST /api/module-progresses")
+    console.log("📝 Request body:", body)
 
-    const body = await req.json().catch(() => ({}));
-    // akzeptiere moduleId UND legacy module_id
-    const moduleId = Number(body?.moduleId ?? body?.module_id);
-    const videoWatched = Boolean(body?.videoWatched);
-    const quizCompleted = Boolean(body?.quizCompleted);
-    if (!moduleId) return j(400, { error: "moduleId required" });
+    const { userEmail, module_id, course_id, video_completed, quiz_completed } = body
 
-    // 🔎 vorhandenen Eintrag finden
-    const findQs = new URLSearchParams();
-    findQs.set("populate[module][fields][0]", "id");
-    findQs.set("populate[users_permissions_user][fields][0]", "id");
-    findQs.set("filters[users_permissions_user][id][$eq]", String(me.id));
-    findQs.set("filters[module][id][$eq]", String(moduleId));
-
-    const findUrl = `${STRAPI_URL}/api/module-progresses?${findQs.toString()}`;
-    const f = await fetch(findUrl, { headers: { Authorization: `Bearer ${STRAPI_API_TOKEN}` } });
-    const fjson = await f.json();
-    if (!f.ok) return j(f.status, { error: "Lookup failed", details: fjson });
-
-    const completed = videoWatched && quizCompleted;
-
-    if (Array.isArray(fjson.data) && fjson.data.length > 0) {
-      const existing = fjson.data[0];
-      const ownerId = Number(existing?.attributes?.users_permissions_user?.data?.id ?? NaN);
-      const meId = Number(me.id);
-      if (!Number.isNaN(ownerId) && ownerId !== meId) {
-        return j(403, { error: "Forbidden (owner mismatch)", details: { ownerId, meId } });
-      }
-
-      const upd = await fetch(`${STRAPI_URL}/api/module-progresses/${existing.id}`, {
-        method: "PUT",
-        headers: {
-          Authorization: `Bearer ${STRAPI_API_TOKEN}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ data: { videoWatched, quizCompleted, completed } }),
-      });
-      const ujson = await upd.json();
-      if (!upd.ok) return j(upd.status, { error: "Update failed", details: ujson });
-
-      return j(200, {
-        success: true,
-        action: "updated",
-        data: { id: ujson?.data?.id, moduleId, videoWatched, quizCompleted, completed },
-      });
+    if (!userEmail || !module_id) {
+      return NextResponse.json({ error: "Missing required fields: userEmail, module_id" }, { status: 400 })
     }
 
-    // ➕ Create
-    const payload = {
-      data: {
-        users_permissions_user: Number(me.id), // Relation per ID
-        module: moduleId,                      // Relation per ID
-        videoWatched,
-        quizCompleted,
-        completed,
-      },
-    };
+    if (!STRAPI_TOKEN) {
+      return NextResponse.json({ error: "Missing API token" }, { status: 500 })
+    }
 
-    const crt = await fetch(`${STRAPI_URL}/api/module-progresses`, {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${STRAPI_API_TOKEN}`,
-        "Content-Type": "application/json",
+    // 1. Find user by email
+    console.log("🔍 Looking up user by email:", userEmail)
+    const userResponse = await fetch(
+      `${STRAPI_URL}/api/authorized-users?filters[email][$eq]=${encodeURIComponent(userEmail)}`,
+      {
+        headers: {
+          Authorization: `Bearer ${STRAPI_TOKEN}`,
+          "Content-Type": "application/json",
+        },
       },
-      body: JSON.stringify(payload),
-    });
-    const cjson = await crt.json();
-    if (!crt.ok) return j(crt.status, { error: "Create failed", details: cjson });
+    )
 
-    return j(201, {
-      success: true,
-      action: "created",
-      data: { id: cjson?.data?.id, moduleId, videoWatched, quizCompleted, completed },
-    });
-  } catch (e: any) {
-    return j(500, { error: "Internal error", details: e?.message });
+    if (!userResponse.ok) {
+      console.error("❌ User lookup failed:", userResponse.status)
+      return NextResponse.json({ error: "User lookup failed" }, { status: userResponse.status })
+    }
+
+    const userData = await userResponse.json()
+    console.log("👤 User lookup result:", userData.data?.length || 0, "users found")
+
+    if (!userData.data || userData.data.length === 0) {
+      return NextResponse.json({ error: "User not found" }, { status: 404 })
+    }
+
+    const userId = userData.data[0].id
+    console.log("✅ User ID found:", userId)
+
+    // 2. Check for existing progress
+    console.log("🔍 Checking for existing progress...")
+    const existingResponse = await fetch(
+      `${STRAPI_URL}/api/module-progresses?filters[authorized_user][id][$eq]=${userId}&filters[module_id][$eq]=${module_id}&populate=*`,
+      {
+        headers: {
+          Authorization: `Bearer ${STRAPI_TOKEN}`,
+          "Content-Type": "application/json",
+        },
+      },
+    )
+
+    if (!existingResponse.ok) {
+      console.error("❌ Existing progress check failed:", existingResponse.status)
+      return NextResponse.json({ error: "Failed to check existing progress" }, { status: existingResponse.status })
+    }
+
+    const existingData = await existingResponse.json()
+    console.log("📊 Existing progress check:", existingData.data?.length || 0, "entries found")
+
+    // 3. Prepare progress data
+    const progressData = {
+      authorized_user: userId,
+      module_id: Number.parseInt(module_id.toString()),
+      course_id: course_id ? Number.parseInt(course_id.toString()) : null,
+      video_completed: video_completed || false,
+      quiz_completed: quiz_completed || false,
+      completed: (video_completed || false) && (quiz_completed || false),
+      last_accessed: new Date().toISOString(),
+      completed_at: (video_completed || false) && (quiz_completed || false) ? new Date().toISOString() : null,
+    }
+
+    console.log("📝 Progress data to save:", progressData)
+
+    // 4. Update or Create
+    if (existingData.data && existingData.data.length > 0 && existingData.data[0]?.id) {
+      // UPDATE existing progress
+      const existingProgress = existingData.data[0]
+      const progressId = existingProgress.id
+
+      console.log("🔄 Updating existing progress with ID:", progressId)
+
+      const updateResponse = await fetch(`${STRAPI_URL}/api/module-progresses/${progressId}`, {
+        method: "PUT",
+        headers: {
+          Authorization: `Bearer ${STRAPI_TOKEN}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ data: progressData }),
+      })
+
+      if (!updateResponse.ok) {
+        const errorData = await updateResponse.json()
+        console.error("❌ Update failed:", updateResponse.status, errorData)
+        return NextResponse.json({ error: "Failed to update progress" }, { status: updateResponse.status })
+      }
+
+      const updateResult = await updateResponse.json()
+      console.log("✅ Progress updated successfully")
+
+      return NextResponse.json({
+        success: true,
+        action: "updated",
+        data: updateResult.data,
+      })
+    } else {
+      // CREATE new progress
+      console.log("➕ Creating new progress entry")
+
+      const createResponse = await fetch(`${STRAPI_URL}/api/module-progresses`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${STRAPI_TOKEN}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ data: progressData }),
+      })
+
+      if (!createResponse.ok) {
+        const errorData = await createResponse.json()
+        console.error("❌ Create failed:", createResponse.status, errorData)
+        return NextResponse.json({ error: "Failed to create progress" }, { status: createResponse.status })
+      }
+
+      const createResult = await createResponse.json()
+      console.log("✅ Progress created successfully")
+
+      return NextResponse.json({
+        success: true,
+        action: "created",
+        data: createResult.data,
+      })
+    }
+  } catch (error) {
+    console.error("💥 Error in POST /api/module-progresses:", error)
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 })
   }
 }

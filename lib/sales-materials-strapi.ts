@@ -1,5 +1,7 @@
-// lib/sales-materials-strapi.ts
-// ⚠️ Client-safe: ruft NUR deine Next-API auf, nicht Strapi direkt
+// Strapi API functions for Sales Materials
+
+const STRAPI_URL = "https://strapi-elearning-8rff.onrender.com"
+const STRAPI_TOKEN = process.env.NEXT_PUBLIC_STRAPI_API_TOKEN
 
 export interface StrapiSalesMaterial {
   id: number
@@ -28,89 +30,56 @@ export interface StrapiSalesMaterialsResponse {
   }
 }
 
-// Hilfsmapper: flaches Objekt -> Strapi-ähnliches Objekt
-function toStrapiOne(flat: any): StrapiSalesMaterial {
-  return {
-    id: flat.id,
-    attributes: {
-      title: flat.title,
-      description: flat.description,
-      type: flat.type,
-      file_url: flat.file_url,
-      thumbnail: flat.thumbnail,
-      category: flat.category,
-      tags: flat.tags ?? [],
-      createdAt: flat.created_at || flat.createdAt || new Date().toISOString(),
-      updatedAt: flat.updated_at || flat.updatedAt || new Date().toISOString(),
-    },
-  }
-}
-
-function toStrapiList(payload: any): StrapiSalesMaterialsResponse {
-  // Wenn bereits Strapi-Format (data[].attributes vorhanden) -> durchreichen
-  if (Array.isArray(payload?.data) && payload.data[0]?.attributes) {
-    return payload as StrapiSalesMaterialsResponse
-  }
-
-  const items = Array.isArray(payload?.data) ? payload.data : []
-  const data = items.map(toStrapiOne)
-  const total = payload?.meta?.pagination?.total ?? data.length
-
-  return {
-    data,
-    meta: {
-      pagination: {
-        page: 1,
-        pageSize: data.length,
-        pageCount: 1,
-        total,
-      },
-    },
-  }
-}
-
-/**
- * Liste holen – gleicher Name wie vorher, aber nun über deine Next-API.
- * Gibt weiterhin ein Strapi-ähnliches Response-Objekt zurück.
- */
 export async function fetchSalesMaterialsFromStrapi(): Promise<StrapiSalesMaterialsResponse> {
   try {
-    const res = await fetch(`/api/sales-materials`, { cache: "no-store" })
-    if (!res.ok) {
-      throw new Error(`API error: ${res.status} ${res.statusText}`)
+    console.log("📡 Fetching sales materials from Strapi...")
+
+    const response = await fetch(`${STRAPI_URL}/api/sales-materials?populate=*`, {
+      headers: {
+        Authorization: `Bearer ${STRAPI_TOKEN}`,
+        "Content-Type": "application/json",
+      },
+    })
+
+    if (!response.ok) {
+      throw new Error(`Strapi API error: ${response.status} ${response.statusText}`)
     }
-    const payload = await res.json()
-    return toStrapiList(payload)
+
+    const data = await response.json()
+    console.log("✅ Sales materials fetched successfully:", data.data?.length || 0, "items")
+
+    return data
   } catch (error) {
-    console.error("💥 Error fetching sales materials:", error)
+    console.error("💥 Error fetching sales materials from Strapi:", error)
     throw error
   }
 }
 
-/**
- * Einzelnes Material holen – gleicher Name wie vorher.
- * Gibt weiterhin ein Strapi-ähnliches Objekt (mit attributes) zurück.
- */
 export async function fetchSalesMaterialByIdFromStrapi(id: number): Promise<StrapiSalesMaterial> {
   try {
-    const res = await fetch(`/api/sales-materials/${id}`, { cache: "no-store" })
-    if (!res.ok) {
-      throw new Error(`API error: ${res.status} ${res.statusText}`)
+    console.log("📡 Fetching sales material by ID from Strapi:", id)
+
+    const response = await fetch(`${STRAPI_URL}/api/sales-materials/${id}?populate=*`, {
+      headers: {
+        Authorization: `Bearer ${STRAPI_TOKEN}`,
+        "Content-Type": "application/json",
+      },
+    })
+
+    if (!response.ok) {
+      throw new Error(`Strapi API error: ${response.status} ${response.statusText}`)
     }
-    const payload = await res.json()
 
-    // Wenn bereits Strapi-Format (attributes vorhanden)
-    if (payload?.attributes) return payload as StrapiSalesMaterial
+    const data = await response.json()
+    console.log("✅ Sales material fetched successfully:", data.data?.attributes?.title)
 
-    // sonst vom flachen Format mappen
-    return toStrapiOne(payload)
+    return data.data
   } catch (error) {
-    console.error("💥 Error fetching sales material by ID:", error)
+    console.error("💥 Error fetching sales material by ID from Strapi:", error)
     throw error
   }
 }
 
-// Deine Transform-Helfer bleiben 1:1 erhalten
 export function transformStrapiSalesMaterial(strapiMaterial: StrapiSalesMaterial) {
   return {
     id: strapiMaterial.id,

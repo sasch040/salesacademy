@@ -20,9 +20,6 @@ import Link from "next/link"
 import Image from "next/image"
 import { YouTubePlayer } from "@/components/youtube-player"
 
-// ✅ Progress-Helpers (korrekter Import)
-import { getProgressList, saveProgress } from "@/lib/progress"
-
 // Types für ID-basierte Daten
 interface DynamicModule {
   id: number
@@ -50,7 +47,7 @@ interface DynamicCourse {
   id: number
   title: string
   description: string
-  logo: any
+  logo: any // Updated to any to handle different logo structures
   gradient: string
   modules: DynamicModule[]
 }
@@ -61,11 +58,9 @@ export default function CoursePage() {
   const [error, setError] = useState<string | null>(null)
   const [userEmail, setUserEmail] = useState("")
   const [expandedModule, setExpandedModule] = useState<number | null>(null)
-
   const [videoStates, setVideoStates] = useState<{
     [key: number]: { isPlaying: boolean; currentTime: number; duration: number; completed: boolean }
   }>({})
-
   const [quizStates, setQuizStates] = useState<{
     [key: number]: {
       isOpen: boolean
@@ -82,128 +77,137 @@ export default function CoursePage() {
   const params = useParams<{ courseId: string }>()
   const courseId = params.courseId
 
-  // Course laden
+  // Course loading über direkte API
   useEffect(() => {
     const loadCourse = async () => {
       try {
         setLoading(true)
+        console.log("🔍 === COURSE PAGE: Loading course ===")
+        console.log("🎯 Course ID from URL:", courseId)
+
+        // Direkte Course API Abfrage
+        console.log("📡 Loading course data via direct Course API")
         const response = await fetch(`/api/courses/${courseId}`, {
-          headers: { "Content-Type": "application/json" },
+          headers: {
+            "Content-Type": "application/json",
+          },
         })
-        if (!response.ok) {
-          const err = await response.json().catch(() => ({}))
-          setError(err?.error || "Kurs konnte nicht geladen werden")
-          return
+
+        console.log("📡 Course API Response Status:", response.status)
+
+        if (response.ok) {
+          const courseData = await response.json()
+          console.log("✅ Course API Data Received")
+          console.log("📝 Course Title:", courseData.title)
+          console.log("🔢 Course ID:", courseData.id)
+          console.log("🖼️ Course Logo URL:", courseData.logo)
+          console.log("🔗 Logo Source:", courseData.logo ? "API" : "Placeholder")
+          console.log("📚 Modules Count:", courseData.modules?.length || 0)
+
+          // NEUE DEBUG INFO FÜR LOGO
+          console.log("=== LOGO DEBUG INFO ===")
+          console.log("Raw Logo Value:", JSON.stringify(courseData.logo))
+          console.log("Logo Type:", typeof courseData.logo)
+          console.log("Logo Length:", courseData.logo?.length || 0)
+          console.log("Is Logo Truthy:", !!courseData.logo)
+          console.log("========================")
+
+          setCourse(courseData)
+          console.log("✅ Course state updated")
+        } else {
+          const errorData = await response.json()
+          console.error("❌ Course API failed:", errorData)
+          setError(errorData.error || "Kurs konnte nicht geladen werden")
         }
-        const courseData = await response.json()
-        setCourse(courseData)
       } catch (err) {
+        console.error("💥 Course loading error:", err)
         setError("Fehler beim Laden des Kurses")
       } finally {
         setLoading(false)
+        console.log("🏁 Course loading finished")
       }
     }
 
-    if (courseId) loadCourse()
-    else {
+    if (courseId) {
+      console.log("🚀 Starting course load for ID:", courseId)
+      loadCourse()
+    } else {
+      console.error("❌ No courseId provided")
       setError("Keine Kurs-ID gefunden")
       setLoading(false)
     }
   }, [courseId])
 
-  // Auth (holt userEmail nur für Anzeige/Weiterleitung)
+  // User authentication per Cookie und /api/auth/me
   useEffect(() => {
     const checkAuth = async () => {
       try {
         const res = await fetch("/api/auth/me", {
           method: "GET",
-          credentials: "include",
+          credentials: "include", // wichtig für Cookie-Auth!
         })
+
         if (!res.ok) {
+          console.warn("⛔ Nicht eingeloggt – Weiterleitung zum Login")
           router.push("/auth/login")
           return
         }
+
         const data = await res.json()
+        console.log("✅ Authentifizierter User:", data.user)
         setUserEmail(data.user?.email || "")
-      } catch {
+      } catch (err) {
+        console.error("💥 Fehler bei Auth-Check:", err)
         router.push("/auth/login")
       }
     }
+
     checkAuth()
   }, [router])
 
-  // ✅ Fortschritt vom Server hydratisieren (setzt video/quiz flags je Modul)
-  useEffect(() => {
-    if (!course) return
-    ;(async () => {
-      try {
-        const list = await getProgressList() // holt alle progress-einträge des eingeloggten users
-        const byModule = new Map(list.map((p) => [p.moduleId, p]))
 
-        const vs: typeof videoStates = {}
-        const qs: typeof quizStates = {}
-
-        course.modules.forEach((m) => {
-          const p = byModule.get(m.id)
-          vs[m.id] = {
-            isPlaying: false,
-            currentTime: 0,
-            duration: 0,
-            completed: !!p?.videoWatched,
-          }
-          qs[m.id] = {
-            isOpen: false,
-            currentQuestion: 0,
-            answers: [],
-            score: null,
-            completed: !!p?.quizCompleted,
-            showFeedback: false,
-            lastAnswerCorrect: false,
-          }
-        })
-
-        setVideoStates(vs)
-        setQuizStates(qs)
-      } catch (e) {
-        console.error("⚠️ Fortschritt konnte nicht geladen werden:", e)
-      }
-    })()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [course?.id])
-
-  // UI-Handler
+  // ID-basierte Funktionen
   const toggleModule = (moduleId: number) => {
+    console.log("🔄 Toggling module:", moduleId)
     setExpandedModule((prev) => (prev === moduleId ? null : moduleId))
   }
 
   const handleVideoPlay = (moduleId: number) => {
+    console.log("🎥 Video started for module:", moduleId)
     setVideoStates((prev) => ({
       ...prev,
-      [moduleId]: { ...prev[moduleId], isPlaying: true },
+      [moduleId]: {
+        ...prev[moduleId],
+        isPlaying: true,
+      },
     }))
   }
 
   const handleVideoPause = (moduleId: number) => {
+    console.log("⏸️ Video paused for module:", moduleId)
     setVideoStates((prev) => ({
       ...prev,
-      [moduleId]: { ...prev[moduleId], isPlaying: false },
+      [moduleId]: {
+        ...prev[moduleId],
+        isPlaying: false,
+      },
     }))
   }
 
-  // ✅ Video-Ende -> lokal & Server speichern
-  const handleVideoEnded = async (moduleId: number) => {
+  const handleVideoEnded = (moduleId: number) => {
+    console.log("✅ Video completed for module:", moduleId)
     setVideoStates((prev) => ({
       ...prev,
-      [moduleId]: { ...prev[moduleId], isPlaying: false, completed: true },
+      [moduleId]: {
+        ...prev[moduleId],
+        isPlaying: false,
+        completed: true,
+      },
     }))
-    try {
-      await saveProgress(moduleId, { videoWatched: true }) // schickt {moduleId, videoWatched:true}
-    } catch (e) {
-      console.error("💥 Fortschritt speichern (Video) fehlgeschlagen:", e)
-    }
   }
 
   const startQuiz = (moduleId: number) => {
+    console.log("🧠 Starting quiz for module:", moduleId)
     setQuizStates((prev) => ({
       ...prev,
       [moduleId]: {
@@ -219,6 +223,7 @@ export default function CoursePage() {
   }
 
   const answerQuestion = (moduleId: number, answerIndex: number) => {
+    console.log("📝 Answering question for module:", moduleId, "answer:", answerIndex)
     const module = course?.modules.find((m) => m.id === moduleId)
     if (!module) return
 
@@ -226,61 +231,69 @@ export default function CoursePage() {
     const currentQuestion = module.quiz.questions[currentQuizState?.currentQuestion || 0]
     const isCorrect = answerIndex === currentQuestion?.correctAnswer
 
+    console.log(`📝 Question: "${currentQuestion.question}"`)
+    console.log(`📝 Selected: "${currentQuestion.options[answerIndex]}" (index: ${answerIndex})`)
+    console.log(
+      `📝 Correct: "${currentQuestion.options[currentQuestion.correctAnswer]}" (index: ${currentQuestion.correctAnswer})`,
+    )
+    console.log(`📝 Is Correct: ${isCorrect}`)
+
     setQuizStates((prev) => ({
       ...prev,
-      [moduleId]: { ...prev[moduleId], showFeedback: true, lastAnswerCorrect: isCorrect },
+      [moduleId]: {
+        ...prev[moduleId],
+        showFeedback: true,
+        lastAnswerCorrect: isCorrect,
+      },
     }))
 
-    setTimeout(() => {
-      const newAnswers = [...(currentQuizState?.answers || [])]
-      newAnswers[currentQuizState?.currentQuestion || 0] = answerIndex
+    setTimeout(
+      () => {
+        const newAnswers = [...(currentQuizState?.answers || [])]
+        newAnswers[currentQuizState?.currentQuestion || 0] = answerIndex
 
-      const isLastQuestion = (currentQuizState?.currentQuestion || 0) >= module.quiz.questions.length - 1
+        const isLastQuestion = (currentQuizState?.currentQuestion || 0) >= module.quiz.questions.length - 1
 
-      if (isLastQuestion) {
-        const correctAnswers = newAnswers.reduce((count, answer, index) => {
-          return answer === module.quiz.questions[index].correctAnswer ? count + 1 : count
-        }, 0)
-        const score = Math.round((correctAnswers / module.quiz.questions.length) * 100)
+        if (isLastQuestion) {
+          const correctAnswers = newAnswers.reduce((count, answer, index) => {
+            return answer === module.quiz.questions[index].correctAnswer ? count + 1 : count
+          }, 0)
+          const score = Math.round((correctAnswers / module.quiz.questions.length) * 100)
 
-        setQuizStates((prev) => ({
-          ...prev,
-          [moduleId]: {
-            ...prev[moduleId],
-            answers: newAnswers,
-            score,
-            completed: true,
-            showFeedback: false,
-            lastAnswerCorrect: isCorrect,
-          },
-        }))
+          console.log(
+            `🎯 Quiz completed for module ${moduleId}: ${correctAnswers}/${module.quiz.questions.length} correct (${score}%)`,
+          )
 
-        // ✅ bestanden -> Server speichern
-        if (score >= module.quiz.passingScore) {
-          ;(async () => {
-            try {
-              await saveProgress(moduleId, { quizCompleted: true }) // schickt {moduleId, quizCompleted:true}
-            } catch (e) {
-              console.error("💥 Fortschritt speichern (Quiz) fehlgeschlagen:", e)
-            }
-          })()
+          setQuizStates((prev) => ({
+            ...prev,
+            [moduleId]: {
+              ...prev[moduleId],
+              answers: newAnswers,
+              score,
+              completed: true,
+              showFeedback: false,
+              lastAnswerCorrect: isCorrect,
+            },
+          }))
+        } else {
+          setQuizStates((prev) => ({
+            ...prev,
+            [moduleId]: {
+              ...prev[moduleId],
+              answers: newAnswers,
+              currentQuestion: (prev[moduleId]?.currentQuestion || 0) + 1,
+              showFeedback: false,
+              lastAnswerCorrect: isCorrect,
+            },
+          }))
         }
-      } else {
-        setQuizStates((prev) => ({
-          ...prev,
-          [moduleId]: {
-            ...prev[moduleId],
-            answers: newAnswers,
-            currentQuestion: (prev[moduleId]?.currentQuestion || 0) + 1,
-            showFeedback: false,
-            lastAnswerCorrect: isCorrect,
-          },
-        }))
-      }
-    }, isCorrect ? 1500 : 2500)
+      },
+      isCorrect ? 1500 : 2500,
+    )
   }
 
   const resetQuiz = (moduleId: number) => {
+    console.log("🔄 Resetting quiz for module:", moduleId)
     setQuizStates((prev) => ({
       ...prev,
       [moduleId]: {
@@ -295,9 +308,12 @@ export default function CoursePage() {
     }))
   }
 
-  const isYouTubeUrl = (url: string) => url.includes("youtube.com") || url.includes("youtu.be")
+  // Hilfsfunktion um zu prüfen ob URL ein YouTube-Link ist
+  const isYouTubeUrl = (url: string) => {
+    return url.includes("youtube.com") || url.includes("youtu.be")
+  }
 
-  // Loading
+  // Loading State
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 flex items-center justify-center">
@@ -310,7 +326,7 @@ export default function CoursePage() {
     )
   }
 
-  // Error
+  // Error State
   if (error || !course) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 flex items-center justify-center">
@@ -330,7 +346,7 @@ export default function CoursePage() {
     )
   }
 
-  // Fortschritt rechnen
+  // Fortschrittsberechnung
   const completedModules =
     course?.modules.filter((m) => {
       const videoCompleted = videoStates[m.id]?.completed || false
@@ -363,16 +379,13 @@ export default function CoursePage() {
           <div className="w-px h-6 bg-slate-300 mx-2"></div>
           <div className="flex items-center gap-2">
             <Image
-              src={
-                course.logo ||
-                `/placeholder.svg?height=64&width=64&text=${encodeURIComponent(course.title || "Kurs")}`
-              }
-              alt={course.title || "Kurs"}
+              src="/images/sales-academy-logo.png"
+              alt="Sales Academy"
               width={150}
               height={45}
               className="h-6 w-auto drop-shadow-lg"
               onError={(e) => {
-                ;(e.currentTarget as HTMLImageElement).src = "/placeholder.svg?height=24&width=24&text=SA"
+                e.currentTarget.src = "/placeholder.svg?height=24&width=24&text=SA"
               }}
             />
             <span className="text-sm font-bold text-slate-800">Sales Academy</span>
@@ -380,7 +393,7 @@ export default function CoursePage() {
         </div>
       </header>
 
-      {/* Main */}
+      {/* Main Content */}
       <main className="max-w-5xl mx-auto px-6 py-12">
         {/* Course Overview */}
         <Card className="mb-12 bg-white/70 backdrop-blur-sm border-0 shadow-xl">
@@ -396,6 +409,11 @@ export default function CoursePage() {
                   width={64}
                   height={64}
                   className="w-full h-full object-contain drop-shadow-lg rounded-lg"
+                  onError={(e) => {
+                    const fallback = `/placeholder.svg?height=64&width=64&text=${encodeURIComponent(course.title || "Kurs")}`
+                    console.warn("❌ Logo konnte nicht geladen werden:", e.currentTarget.src)
+                    e.currentTarget.src = fallback
+                  }}
                 />
               </div>
               <div>
@@ -441,16 +459,28 @@ export default function CoursePage() {
                 <div
                   className={`bg-gradient-to-r ${course?.gradient || "from-slate-500 to-slate-600"} h-3 rounded-full transition-all duration-500 shadow-sm`}
                   style={{ width: `${progressPercentage}%` }}
-                />
+                ></div>
               </div>
               <p className="text-sm text-slate-600 font-light">
                 {completedModules} von {totalModules} Modulen abgeschlossen
               </p>
+
+              {totalModules > 0 && (
+                <div className="mt-3 flex items-center gap-2">
+                  {allModulesCompleted ? (
+                    <Badge className="bg-green-100 text-green-800 border-green-200">✅ Kurs abgeschlossen</Badge>
+                  ) : progressPercentage > 0 ? (
+                    <Badge className="bg-blue-100 text-blue-800 border-blue-200">📚 In Bearbeitung</Badge>
+                  ) : (
+                    <Badge className="bg-slate-100 text-slate-800 border-slate-200">🚀 Bereit zum Start</Badge>
+                  )}
+                </div>
+              )}
             </div>
           </CardContent>
         </Card>
 
-        {/* Modules */}
+        {/* Modules Section */}
         <div className="space-y-6">
           <h2 className="text-2xl font-bold text-slate-800 mb-8">Kursmodule ({course.modules.length})</h2>
 
@@ -548,11 +578,22 @@ export default function CoursePage() {
                             <div
                               className={`transition-transform duration-300 ${expandedModule === module.id ? "rotate-180" : "rotate-0"}`}
                             >
-                              {expandedModule === module.id ? <ChevronUp className="h-5 w-5" /> : <ChevronDown className="h-5 w-5" />}
+                              {expandedModule === module.id ? (
+                                <ChevronUp className="h-5 w-5" />
+                              ) : (
+                                <ChevronDown className="h-5 w-5" />
+                              )}
                             </div>
                             <span className="font-semibold">
-                              {expandedModule === module.id ? "Schließen" : isModuleCompleted ? "✓ Wiederholen" : "Ansehen"}
+                              {expandedModule === module.id
+                                ? "Schließen"
+                                : isModuleCompleted
+                                  ? "✓ Wiederholen"
+                                  : "Ansehen"}
                             </span>
+                            {!expandedModule && !isModuleCompleted && (
+                              <div className="w-2 h-2 bg-white/50 rounded-full animate-pulse"></div>
+                            )}
                           </Button>
                         </div>
 
@@ -693,7 +734,8 @@ export default function CoursePage() {
                                             <div className="bg-white/80 p-4 rounded-xl border border-blue-200">
                                               <div className="flex justify-between items-center mb-3">
                                                 <span className="text-sm font-semibold text-slate-700">
-                                                  Frage {(quizStates[module.id]?.currentQuestion || 0) + 1} von {module.quiz.questions.length}
+                                                  Frage {(quizStates[module.id]?.currentQuestion || 0) + 1} von{" "}
+                                                  {module.quiz.questions.length}
                                                 </span>
                                                 <div className="flex items-center gap-2">
                                                   <span className="text-xs text-slate-500">Mindestpunktzahl:</span>
@@ -708,50 +750,56 @@ export default function CoursePage() {
                                                   style={{
                                                     width: `${((quizStates[module.id]?.currentQuestion || 0) / module.quiz.questions.length) * 100}%`,
                                                   }}
-                                                />
+                                                ></div>
                                               </div>
                                             </div>
 
                                             {/* Question Card */}
                                             <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200 animate-in fade-in slide-in-from-right-4 duration-500">
                                               <h5 className="font-bold text-xl text-slate-800 mb-6 leading-relaxed">
-                                                {module.quiz.questions[quizStates[module.id]?.currentQuestion || 0]?.question}
+                                                {
+                                                  module.quiz.questions[quizStates[module.id]?.currentQuestion || 0]
+                                                    ?.question
+                                                }
                                               </h5>
                                               <div className="space-y-3">
-                                                {module.quiz.questions[quizStates[module.id]?.currentQuestion || 0]?.options?.map(
-                                                  (option, optionIndex) => (
-                                                    <button
-                                                      key={optionIndex}
-                                                      onClick={() => answerQuestion(module.id, optionIndex)}
-                                                      disabled={quizStates[module.id]?.showFeedback}
-                                                      className={`w-full text-left p-4 rounded-xl border-2 transition-all duration-300 transform hover:scale-[1.02] ${
-                                                        quizStates[module.id]?.showFeedback
-                                                          ? optionIndex ===
-                                                            module.quiz.questions[quizStates[module.id]?.currentQuestion || 0]
-                                                              ?.correctAnswer
-                                                            ? "bg-gradient-to-r from-green-100 to-green-50 border-green-300 text-green-800 shadow-lg scale-[1.02]"
-                                                            : "bg-gradient-to-r from-red-100 to-red-50 border-red-300 text-red-800 opacity-75"
-                                                          : "bg-slate-50 border-slate-200 hover:bg-slate-100 hover:border-slate-300 hover:shadow-md"
-                                                      }`}
-                                                    >
-                                                      <div className="flex items-center gap-3">
-                                                        <div
-                                                          className={`w-6 h-6 rounded-full border-2 flex items-center justify-center text-xs font-bold ${
-                                                            quizStates[module.id]?.showFeedback
-                                                              ? optionIndex ===
-                                                                module.quiz.questions[quizStates[module.id]?.currentQuestion || 0]?.correctAnswer
-                                                                ? "bg-green-500 border-green-500 text-white"
-                                                                : "bg-red-500 border-red-500 text-white"
-                                                              : "border-slate-300 text-slate-600"
-                                                          }`}
-                                                        >
-                                                          {String.fromCharCode(65 + optionIndex)}
-                                                        </div>
-                                                        <span className="font-medium">{option}</span>
+                                                {module.quiz.questions[
+                                                  quizStates[module.id]?.currentQuestion || 0
+                                                ]?.options?.map((option, optionIndex) => (
+                                                  <button
+                                                    key={optionIndex}
+                                                    onClick={() => answerQuestion(module.id, optionIndex)}
+                                                    disabled={quizStates[module.id]?.showFeedback}
+                                                    className={`w-full text-left p-4 rounded-xl border-2 transition-all duration-300 transform hover:scale-[1.02] ${
+                                                      quizStates[module.id]?.showFeedback
+                                                        ? optionIndex ===
+                                                          module.quiz.questions[
+                                                            quizStates[module.id]?.currentQuestion || 0
+                                                          ]?.correctAnswer
+                                                          ? "bg-gradient-to-r from-green-100 to-green-50 border-green-300 text-green-800 shadow-lg scale-[1.02]"
+                                                          : "bg-gradient-to-r from-red-100 to-red-50 border-red-300 text-red-800 opacity-75"
+                                                        : "bg-slate-50 border-slate-200 hover:bg-slate-100 hover:border-slate-300 hover:shadow-md"
+                                                    }`}
+                                                  >
+                                                    <div className="flex items-center gap-3">
+                                                      <div
+                                                        className={`w-6 h-6 rounded-full border-2 flex items-center justify-center text-xs font-bold ${
+                                                          quizStates[module.id]?.showFeedback
+                                                            ? optionIndex ===
+                                                              module.quiz.questions[
+                                                                quizStates[module.id]?.currentQuestion || 0
+                                                              ]?.correctAnswer
+                                                              ? "bg-green-500 border-green-500 text-white"
+                                                              : "bg-red-500 border-red-500 text-white"
+                                                            : "border-slate-300 text-slate-600"
+                                                        }`}
+                                                      >
+                                                        {String.fromCharCode(65 + optionIndex)}
                                                       </div>
-                                                    </button>
-                                                  )
-                                                )}
+                                                      <span className="font-medium">{option}</span>
+                                                    </div>
+                                                  </button>
+                                                ))}
                                               </div>
                                             </div>
 
@@ -767,7 +815,9 @@ export default function CoursePage() {
                                                 <div className="flex items-center gap-3">
                                                   <div
                                                     className={`w-8 h-8 rounded-full flex items-center justify-center ${
-                                                      quizStates[module.id]?.lastAnswerCorrect ? "bg-green-500" : "bg-red-500"
+                                                      quizStates[module.id]?.lastAnswerCorrect
+                                                        ? "bg-green-500"
+                                                        : "bg-red-500"
                                                     }`}
                                                   >
                                                     <span className="text-white text-lg">
@@ -794,21 +844,33 @@ export default function CoursePage() {
                                                 }`}
                                               >
                                                 <span className="text-3xl">
-                                                  {(quizStates[module.id]?.score || 0) >= module.quiz.passingScore ? "🎉" : "😔"}
+                                                  {(quizStates[module.id]?.score || 0) >= module.quiz.passingScore
+                                                    ? "🎉"
+                                                    : "😔"}
                                                 </span>
                                               </div>
                                               <div>
-                                                <h5 className="text-2xl font-bold text-slate-800 mb-3">Quiz abgeschlossen!</h5>
+                                                <h5 className="text-2xl font-bold text-slate-800 mb-3">
+                                                  Quiz abgeschlossen!
+                                                </h5>
                                                 <div className="bg-white p-4 rounded-xl border border-slate-200 mb-6">
                                                   <p className="text-lg text-slate-700 mb-2">
-                                                    <span className="font-bold text-2xl">{quizStates[module.id]?.score || 0}%</span>
+                                                    <span className="font-bold text-2xl">
+                                                      {quizStates[module.id]?.score || 0}%
+                                                    </span>
                                                   </p>
                                                   <p className="text-sm text-slate-600">
-                                                    Benötigt: {module.quiz.passingScore}% • Status:
+                                                    Benötigt: {module.quiz.passingScore}% • Status:{" "}
                                                     {(quizStates[module.id]?.score || 0) >= module.quiz.passingScore ? (
-                                                      <span className="text-green-600 font-semibold"> Bestanden ✅</span>
+                                                      <span className="text-green-600 font-semibold">
+                                                        {" "}
+                                                        Bestanden ✅
+                                                      </span>
                                                     ) : (
-                                                      <span className="text-red-600 font-semibold"> Nicht bestanden ❌</span>
+                                                      <span className="text-red-600 font-semibold">
+                                                        {" "}
+                                                        Nicht bestanden ❌
+                                                      </span>
                                                     )}
                                                   </p>
                                                 </div>
