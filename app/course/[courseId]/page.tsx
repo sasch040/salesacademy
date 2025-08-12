@@ -558,23 +558,6 @@ export default function CoursePage() {
                             📹 Video
                           </Badge>
                           <span className="text-base font-medium text-slate-600">{module.duration}</span>
-                          <Badge
-                            className={`${
-                              isModuleCompleted
-                                ? "bg-green-100 text-green-700 border-green-200"
-                                : isVideoCompleted || isQuizCompleted
-                                  ? "bg-yellow-100 text-yellow-700 border-yellow-200"
-                                  : "bg-slate-100 text-slate-700 border-slate-200"
-                            } text-sm px-3 py-1`}
-                          >
-                            {isModuleCompleted
-                              ? "✅ Abgeschlossen"
-                              : isVideoCompleted && !isQuizCompleted
-                                ? "📝 Quiz offen"
-                                : !isVideoCompleted && isQuizCompleted
-                                  ? "📹 Video offen"
-                                  : "🚀 Bereit"}
-                          </Badge>
 
                           {isVideoCompleted && (
                             <Badge className="bg-blue-100 text-blue-700 border-blue-200 text-sm px-3 py-1">
@@ -859,47 +842,63 @@ export default function CoursePage() {
                                     </div>
                                   ) : (
                                     <div className="text-center animate-in zoom-in duration-500">
-                                      <div className="space-y-6">
-                                        <div
-                                          className={`w-24 h-24 rounded-full flex items-center justify-center mx-auto shadow-xl animate-pulse ${
-                                            (quizStates[module.id]?.score || 0) >= module.quiz.passingScore
-                                              ? "bg-gradient-to-br from-green-400 to-green-600"
-                                              : "bg-gradient-to-br from-red-400 to-red-600"
-                                          }`}
-                                        >
-                                          <span className="text-4xl animate-pulse">
-                                            {(quizStates[module.id]?.score || 0) >= module.quiz.passingScore
-                                              ? "🎉"
-                                              : "😔"}
-                                          </span>
-                                        </div>
-                                        <div>
-                                          <h5 className="text-2xl sm:text-3xl font-bold text-slate-800 mb-4">
-                                            Quiz abgeschlossen!
-                                          </h5>
-                                          <div className="bg-white p-6 rounded-xl border border-slate-200 mb-6">
-                                            <p className="text-xl text-slate-700 mb-3">
-                                              <span className="font-bold text-3xl">
-                                                {quizStates[module.id]?.score || 0}%
-                                              </span>
-                                            </p>
-                                            <p className="text-base text-slate-600">
-                                              Benötigt: {module.quiz.passingScore}% • Status:{" "}
-                                              {(quizStates[module.id]?.score || 0) >= module.quiz.passingScore ? (
-                                                <span className="text-green-600 font-semibold"> Bestanden ✅</span>
-                                              ) : (
-                                                <span className="text-red-600 font-semibold"> Nicht bestanden ❌</span>
-                                              )}
-                                            </p>
+                                      <div className="space-y-4">
+                                        <div className="bg-white p-6 rounded-xl border border-slate-200 relative overflow-hidden">
+                                          {/* Animated background gradient */}
+                                          <div
+                                            className={`absolute inset-0 opacity-10 ${
+                                              (quizStates[module.id]?.score || 0) >= module.quiz.passingScore
+                                                ? "bg-gradient-to-r from-green-400 to-green-600 animate-pulse"
+                                                : "bg-gradient-to-r from-red-400 to-red-600"
+                                            }`}
+                                          ></div>
+
+                                          <div className="relative z-10">
+                                            <h5 className="text-2xl sm:text-3xl font-bold text-slate-800 mb-4">
+                                              Quiz abgeschlossen!
+                                            </h5>
+
+                                            <div className="flex items-center justify-center gap-4 mb-4">
+                                              <div
+                                                className={`w-16 h-16 rounded-full flex items-center justify-center shadow-lg ${
+                                                  (quizStates[module.id]?.score || 0) >= module.quiz.passingScore
+                                                    ? "bg-gradient-to-br from-green-400 to-green-600"
+                                                    : "bg-gradient-to-br from-red-400 to-red-600"
+                                                }`}
+                                              >
+                                                <span className="text-2xl">
+                                                  {(quizStates[module.id]?.score || 0) >= module.quiz.passingScore
+                                                    ? "🎉"
+                                                    : "😔"}
+                                                </span>
+                                              </div>
+
+                                              <div className="text-center">
+                                                <p className="text-3xl font-bold text-slate-800 mb-1">
+                                                  {quizStates[module.id]?.score || 0}%
+                                                </p>
+                                                <p className="text-sm text-slate-600">
+                                                  Benötigt: {module.quiz.passingScore}% • Status:{" "}
+                                                  {(quizStates[module.id]?.score || 0) >= module.quiz.passingScore ? (
+                                                    <span className="text-green-600 font-semibold">Bestanden ✅</span>
+                                                  ) : (
+                                                    <span className="text-red-600 font-semibold">
+                                                      Nicht bestanden ❌
+                                                    </span>
+                                                  )}
+                                                </p>
+                                              </div>
+                                            </div>
                                           </div>
-                                          <Button
-                                            onClick={() => resetQuiz(module.id)}
-                                            className="w-full bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 text-white px-8 py-4 rounded-xl shadow-lg hover:shadow-xl transition-all duration-200 text-base font-semibold"
-                                          >
-                                            <span className="text-xl mr-3">🔄</span>
-                                            Quiz wiederholen
-                                          </Button>
                                         </div>
+
+                                        <Button
+                                          onClick={() => resetQuiz(module.id)}
+                                          className="w-full bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 text-white px-8 py-4 rounded-xl shadow-lg hover:shadow-xl transition-all duration-200 text-base font-semibold"
+                                        >
+                                          <span className="text-xl mr-3">🔄</span>
+                                          Quiz wiederholen
+                                        </Button>
                                       </div>
                                     </div>
                                   )}
