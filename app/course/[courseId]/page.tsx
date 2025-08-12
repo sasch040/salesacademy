@@ -504,7 +504,7 @@ export default function CoursePage() {
                 >
                   <CardContent className="p-4 sm:p-8">
                     <div className="flex items-start gap-4 sm:gap-6">
-                      <div className="flex flex-col items-center gap-2">
+                      <div className="flex flex-col items-center gap-2 flex-shrink-0">
                         <div
                           className={`w-12 h-12 rounded-2xl flex items-center justify-center shadow-lg ${
                             isModuleCompleted
@@ -521,14 +521,18 @@ export default function CoursePage() {
                         <span className="text-xs font-medium text-slate-500">#{index + 1}</span>
                       </div>
 
-                      <div className="flex-1">
-                        <div className="flex items-start justify-between mb-3">
-                          <div>
-                            <h3 className="text-xl font-bold text-slate-800 mb-2">{module.title}</h3>
-                            <p className="text-slate-600 font-light leading-relaxed">{module.description}</p>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between mb-3 gap-3">
+                          <div className="min-w-0 flex-1">
+                            <h3 className="text-lg sm:text-xl font-bold text-slate-800 mb-2 break-words">
+                              {module.title}
+                            </h3>
+                            <p className="text-slate-600 font-light leading-relaxed text-sm sm:text-base break-words">
+                              {module.description}
+                            </p>
                           </div>
                           <Badge
-                            className={`ml-4 ${
+                            className={`flex-shrink-0 self-start ${
                               isModuleCompleted
                                 ? "bg-green-100 text-green-700 border-green-200"
                                 : isVideoCompleted || isQuizCompleted
@@ -546,24 +550,21 @@ export default function CoursePage() {
                           </Badge>
                         </div>
 
-                        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mt-6 gap-4">
-                          <div className="flex flex-wrap items-center gap-2 sm:gap-4">
-                            <Badge
-                              variant="default"
-                              className="px-3 py-1 rounded-full bg-slate-800 text-white text-xs sm:text-sm"
-                            >
+                        <div className="flex flex-col gap-4">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <Badge variant="default" className="px-3 py-1 rounded-full bg-slate-800 text-white text-xs">
                               📹 Video
                             </Badge>
                             <span className="text-sm text-slate-600 font-medium">{module.duration}</span>
 
                             {isVideoCompleted && (
-                              <Badge className="bg-blue-100 text-blue-700 border-blue-200 text-xs sm:text-sm">
+                              <Badge className="bg-blue-100 text-blue-700 border-blue-200 text-xs">
                                 ✅ Video abgeschlossen
                               </Badge>
                             )}
 
                             {isQuizCompleted && (
-                              <Badge className="bg-green-100 text-green-700 border-green-200 text-xs sm:text-sm">
+                              <Badge className="bg-green-100 text-green-700 border-green-200 text-xs">
                                 🎯 Quiz bestanden ({quizStates[module.id]?.score}%)
                               </Badge>
                             )}
@@ -571,7 +572,7 @@ export default function CoursePage() {
 
                           <Button
                             onClick={() => toggleModule(module.id)}
-                            className={`w-full sm:w-auto px-6 sm:px-8 py-3 rounded-xl shadow-lg transition-all duration-300 flex items-center justify-center gap-3 transform hover:scale-105 hover:-translate-y-1 ${
+                            className={`w-full px-6 py-3 rounded-xl shadow-lg transition-all duration-300 flex items-center justify-center gap-3 transform hover:scale-105 hover:-translate-y-1 ${
                               isModuleCompleted
                                 ? "bg-gradient-to-r from-green-100 to-green-200 text-green-800 hover:from-green-200 hover:to-green-300 border-2 border-green-300"
                                 : `bg-gradient-to-r ${course.gradient} hover:shadow-2xl text-white`
@@ -601,18 +602,20 @@ export default function CoursePage() {
 
                         {/* Expanded Module Content */}
                         {expandedModule === module.id && (
-                          <div className="mt-8 overflow-hidden">
-                            <div className="animate-in slide-in-from-top-2 duration-500 ease-out space-y-6">
+                          <div className="mt-6 overflow-hidden">
+                            <div className="animate-in slide-in-from-top-2 duration-500 ease-out space-y-4 sm:space-y-6">
                               {/* Video Section */}
-                              <div className="transform transition-all duration-300 hover:scale-[1.01]">
-                                <div className="p-6 bg-gradient-to-br from-slate-50 to-slate-100 rounded-2xl border-2 border-slate-100 shadow-sm hover:shadow-md transition-all duration-300">
+                              <div className="transform transition-all duration-300">
+                                <div className="p-4 sm:p-6 bg-gradient-to-br from-slate-50 to-slate-100 rounded-2xl border-2 border-slate-100 shadow-sm hover:shadow-md transition-all duration-300">
                                   <div className="flex items-center gap-3 mb-4">
-                                    <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl flex items-center justify-center shadow-lg">
+                                    <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl flex items-center justify-center shadow-lg flex-shrink-0">
                                       <Play className="h-5 w-5 text-white" />
                                     </div>
-                                    <div>
-                                      <h4 className="text-lg font-bold text-slate-800">📹 Video-Lektion</h4>
-                                      <p className="text-sm text-slate-600">{module.videoTitle || module.title}</p>
+                                    <div className="min-w-0">
+                                      <h4 className="text-lg font-bold text-slate-800 break-words">📹 Video-Lektion</h4>
+                                      <p className="text-sm text-slate-600 break-words">
+                                        {module.videoTitle || module.title}
+                                      </p>
                                     </div>
                                   </div>
 
@@ -632,17 +635,17 @@ export default function CoursePage() {
                                       <div className="text-center">
                                         {isVideoCompleted ? (
                                           <div className="animate-in fade-in duration-500 flex items-center justify-center gap-3 p-4 bg-gradient-to-r from-green-50 to-green-100 border-2 border-green-200 rounded-xl">
-                                            <div className="w-8 h-8 bg-green-500 rounded-full flex items-center justify-center animate-pulse">
+                                            <div className="w-8 h-8 bg-green-500 rounded-full flex items-center justify-center animate-pulse flex-shrink-0">
                                               <CheckCircle className="h-5 w-5 text-white" />
                                             </div>
-                                            <span className="text-green-800 font-semibold">
+                                            <span className="text-green-800 font-semibold text-sm sm:text-base">
                                               Video erfolgreich abgeschlossen! 🎉
                                             </span>
                                           </div>
                                         ) : (
                                           <Button
                                             onClick={() => handleVideoEnded(module.id)}
-                                            className="bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white px-8 py-3 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105 hover:-translate-y-1"
+                                            className="w-full sm:w-auto bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white px-6 py-3 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105 hover:-translate-y-1"
                                           >
                                             <CheckCircle className="h-5 w-5 mr-2" />
                                             Video als abgeschlossen markieren
@@ -653,17 +656,19 @@ export default function CoursePage() {
                                   ) : (
                                     <div className="text-center space-y-4">
                                       <div className="aspect-video bg-gradient-to-br from-slate-200 to-slate-300 rounded-xl flex items-center justify-center border-2 border-dashed border-slate-400 hover:border-slate-500 transition-colors duration-300">
-                                        <div className="text-center p-6">
-                                          <div className="w-16 h-16 bg-slate-400 rounded-full flex items-center justify-center mx-auto mb-4 animate-pulse">
-                                            <Play className="h-8 w-8 text-white" />
+                                        <div className="text-center p-4 sm:p-6">
+                                          <div className="w-12 h-12 sm:w-16 sm:h-16 bg-slate-400 rounded-full flex items-center justify-center mx-auto mb-4 animate-pulse">
+                                            <Play className="h-6 w-6 sm:h-8 sm:w-8 text-white" />
                                           </div>
-                                          <p className="text-slate-600 font-medium">Video wird geladen...</p>
-                                          <p className="text-xs text-slate-400 mt-2 break-all max-w-md">
+                                          <p className="text-slate-600 font-medium text-sm sm:text-base">
+                                            Video wird geladen...
+                                          </p>
+                                          <p className="text-xs text-slate-400 mt-2 break-all max-w-full">
                                             {module.videoUrl}
                                           </p>
                                         </div>
                                       </div>
-                                      <div className="flex gap-3 justify-center">
+                                      <div className="flex flex-col sm:flex-row gap-3 justify-center">
                                         <Button
                                           onClick={() => window.open(module.videoUrl, "_blank")}
                                           className="bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white px-6 py-2 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105"
@@ -685,15 +690,15 @@ export default function CoursePage() {
                               </div>
 
                               {/* Quiz Section */}
-                              <div className="transform transition-all duration-300 hover:scale-[1.01]">
-                                <div className="p-6 bg-gradient-to-br from-blue-50 to-indigo-50 rounded-2xl border-2 border-blue-100 shadow-sm hover:shadow-md transition-all duration-300">
+                              <div className="transform transition-all duration-300">
+                                <div className="p-4 sm:p-6 bg-gradient-to-br from-blue-50 to-indigo-50 rounded-2xl border-2 border-blue-100 shadow-sm hover:shadow-md transition-all duration-300">
                                   <div className="flex items-center gap-3 mb-4">
-                                    <div className="w-10 h-10 bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl flex items-center justify-center shadow-lg">
+                                    <div className="w-10 h-10 bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl flex items-center justify-center shadow-lg flex-shrink-0">
                                       <span className="text-lg">🧠</span>
                                     </div>
-                                    <div>
-                                      <h4 className="text-lg font-bold text-slate-800">Quiz-Challenge</h4>
-                                      <p className="text-sm text-slate-600">
+                                    <div className="min-w-0">
+                                      <h4 className="text-lg font-bold text-slate-800 break-words">Quiz-Challenge</h4>
+                                      <p className="text-sm text-slate-600 break-words">
                                         Testen Sie Ihr Wissen mit {module.quiz.questions.length} Fragen
                                       </p>
                                     </div>
@@ -703,7 +708,7 @@ export default function CoursePage() {
                                     {!quizStates[module.id]?.isOpen ? (
                                       <div className="space-y-4">
                                         <div className="p-4 bg-white/70 rounded-xl border border-blue-200">
-                                          <div className="flex items-center justify-center gap-6 text-sm text-slate-600">
+                                          <div className="flex flex-col sm:flex-row items-center justify-center gap-4 sm:gap-6 text-sm text-slate-600">
                                             <div className="flex items-center gap-2">
                                               <span className="w-2 h-2 bg-blue-500 rounded-full"></span>
                                               <span>{module.quiz.questions.length} Fragen</span>
@@ -722,7 +727,7 @@ export default function CoursePage() {
                                         </div>
                                         <Button
                                           onClick={() => startQuiz(module.id)}
-                                          className="bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 text-white px-8 py-3 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105 hover:-translate-y-1"
+                                          className="w-full sm:w-auto bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 text-white px-6 py-3 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105 hover:-translate-y-1"
                                         >
                                           <span className="text-lg mr-2">🚀</span>
                                           Quiz starten ({module.quiz.questions.length} Fragen)
@@ -730,160 +735,104 @@ export default function CoursePage() {
                                       </div>
                                     ) : (
                                       <div className="text-left animate-in slide-in-from-bottom-4 duration-500">
-                                        {!quizStates[module.id]?.completed ? (
-                                          <div className="space-y-6">
-                                            {/* Progress Header */}
-                                            <div className="bg-white/80 p-4 rounded-xl border border-blue-200">
-                                              <div className="flex justify-between items-center mb-3">
-                                                <span className="text-sm font-semibold text-slate-700">
-                                                  Frage {(quizStates[module.id]?.currentQuestion || 0) + 1} von{" "}
-                                                  {module.quiz.questions.length}
-                                                </span>
-                                                <div className="flex items-center gap-2">
-                                                  <span className="text-xs text-slate-500">Mindestpunktzahl:</span>
-                                                  <Badge className="bg-green-100 text-green-800 border-green-200">
-                                                    {module.quiz.passingScore}%
-                                                  </Badge>
-                                                </div>
-                                              </div>
-                                              <div className="w-full bg-slate-200 rounded-full h-3 overflow-hidden">
-                                                <div
-                                                  className="bg-gradient-to-r from-blue-500 to-purple-500 h-3 rounded-full transition-all duration-700 ease-out shadow-sm"
-                                                  style={{
-                                                    width: `${((quizStates[module.id]?.currentQuestion || 0) / module.quiz.questions.length) * 100}%`,
-                                                  }}
-                                                ></div>
-                                              </div>
+                                        {/* Progress Header */}
+                                        <div className="bg-white/80 p-4 rounded-xl border border-blue-200">
+                                          <div className="flex justify-between items-center mb-3">
+                                            <span className="text-sm font-semibold text-slate-700">
+                                              Frage {(quizStates[module.id]?.currentQuestion || 0) + 1} von{" "}
+                                              {module.quiz.questions.length}
+                                            </span>
+                                            <div className="flex items-center gap-2">
+                                              <span className="text-xs text-slate-500">Mindestpunktzahl:</span>
+                                              <Badge className="bg-green-100 text-green-800 border-green-200">
+                                                {module.quiz.passingScore}%
+                                              </Badge>
                                             </div>
+                                          </div>
+                                          <div className="w-full bg-slate-200 rounded-full h-3 overflow-hidden">
+                                            <div
+                                              className="bg-gradient-to-r from-blue-500 to-purple-500 h-3 rounded-full transition-all duration-700 ease-out shadow-sm"
+                                              style={{
+                                                width: `${((quizStates[module.id]?.currentQuestion || 0) / module.quiz.questions.length) * 100}%`,
+                                              }}
+                                            ></div>
+                                          </div>
+                                        </div>
 
-                                            {/* Question Card */}
-                                            <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200 animate-in fade-in slide-in-from-right-4 duration-500">
-                                              <h5 className="font-bold text-xl text-slate-800 mb-6 leading-relaxed">
-                                                {
-                                                  module.quiz.questions[quizStates[module.id]?.currentQuestion || 0]
-                                                    ?.question
-                                                }
-                                              </h5>
-                                              <div className="space-y-3">
-                                                {module.quiz.questions[
-                                                  quizStates[module.id]?.currentQuestion || 0
-                                                ]?.options?.map((option, optionIndex) => (
-                                                  <button
-                                                    key={optionIndex}
-                                                    onClick={() => answerQuestion(module.id, optionIndex)}
-                                                    disabled={quizStates[module.id]?.showFeedback}
-                                                    className={`w-full text-left p-4 rounded-xl border-2 transition-all duration-300 transform hover:scale-[1.02] ${
+                                        {/* Question Card */}
+                                        <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200 animate-in fade-in slide-in-from-right-4 duration-500">
+                                          <h5 className="font-bold text-xl text-slate-800 mb-6 leading-relaxed">
+                                            {
+                                              module.quiz.questions[quizStates[module.id]?.currentQuestion || 0]
+                                                ?.question
+                                            }
+                                          </h5>
+                                          <div className="space-y-3">
+                                            {module.quiz.questions[
+                                              quizStates[module.id]?.currentQuestion || 0
+                                            ]?.options?.map((option, optionIndex) => (
+                                              <button
+                                                key={optionIndex}
+                                                onClick={() => answerQuestion(module.id, optionIndex)}
+                                                disabled={quizStates[module.id]?.showFeedback}
+                                                className={`w-full text-left p-4 rounded-xl border-2 transition-all duration-300 transform hover:scale-[1.02] ${
+                                                  quizStates[module.id]?.showFeedback
+                                                    ? optionIndex ===
+                                                      module.quiz.questions[quizStates[module.id]?.currentQuestion || 0]
+                                                        ?.correctAnswer
+                                                      ? "bg-gradient-to-r from-green-100 to-green-50 border-green-300 text-green-800 shadow-lg scale-[1.02]"
+                                                      : "bg-gradient-to-r from-red-100 to-red-50 border-red-300 text-red-800 opacity-75"
+                                                    : "bg-slate-50 border-slate-200 hover:bg-slate-100 hover:border-slate-300 hover:shadow-md"
+                                                }`}
+                                              >
+                                                <div className="flex items-center gap-3">
+                                                  <div
+                                                    className={`w-6 h-6 rounded-full border-2 flex items-center justify-center text-xs font-bold ${
                                                       quizStates[module.id]?.showFeedback
                                                         ? optionIndex ===
                                                           module.quiz.questions[
                                                             quizStates[module.id]?.currentQuestion || 0
                                                           ]?.correctAnswer
-                                                          ? "bg-gradient-to-r from-green-100 to-green-50 border-green-300 text-green-800 shadow-lg scale-[1.02]"
-                                                          : "bg-gradient-to-r from-red-100 to-red-50 border-red-300 text-red-800 opacity-75"
-                                                        : "bg-slate-50 border-slate-200 hover:bg-slate-100 hover:border-slate-300 hover:shadow-md"
+                                                          ? "bg-green-500 border-green-500 text-white"
+                                                          : "bg-red-500 border-red-500 text-white"
+                                                        : "border-slate-300 text-slate-600"
                                                     }`}
                                                   >
-                                                    <div className="flex items-center gap-3">
-                                                      <div
-                                                        className={`w-6 h-6 rounded-full border-2 flex items-center justify-center text-xs font-bold ${
-                                                          quizStates[module.id]?.showFeedback
-                                                            ? optionIndex ===
-                                                              module.quiz.questions[
-                                                                quizStates[module.id]?.currentQuestion || 0
-                                                              ]?.correctAnswer
-                                                              ? "bg-green-500 border-green-500 text-white"
-                                                              : "bg-red-500 border-red-500 text-white"
-                                                            : "border-slate-300 text-slate-600"
-                                                        }`}
-                                                      >
-                                                        {String.fromCharCode(65 + optionIndex)}
-                                                      </div>
-                                                      <span className="font-medium">{option}</span>
-                                                    </div>
-                                                  </button>
-                                                ))}
-                                              </div>
-                                            </div>
-
-                                            {/* Feedback */}
-                                            {quizStates[module.id]?.showFeedback && (
-                                              <div
-                                                className={`animate-in slide-in-from-bottom-2 duration-300 p-4 rounded-xl border-2 ${
-                                                  quizStates[module.id]?.lastAnswerCorrect
-                                                    ? "bg-gradient-to-r from-green-100 to-green-50 border-green-300 text-green-800"
-                                                    : "bg-gradient-to-r from-red-100 to-red-50 border-red-300 text-red-800"
-                                                }`}
-                                              >
-                                                <div className="flex items-center gap-3">
-                                                  <div
-                                                    className={`w-8 h-8 rounded-full flex items-center justify-center ${
-                                                      quizStates[module.id]?.lastAnswerCorrect
-                                                        ? "bg-green-500"
-                                                        : "bg-red-500"
-                                                    }`}
-                                                  >
-                                                    <span className="text-white text-lg">
-                                                      {quizStates[module.id]?.lastAnswerCorrect ? "✅" : "❌"}
-                                                    </span>
+                                                    {String.fromCharCode(65 + optionIndex)}
                                                   </div>
-                                                  <span className="font-semibold">
-                                                    {quizStates[module.id]?.lastAnswerCorrect
-                                                      ? "Richtig! Gut gemacht! 🎉"
-                                                      : "Leider falsch. Nicht aufgeben! 💪"}
-                                                  </span>
+                                                  <span className="font-medium">{option}</span>
                                                 </div>
-                                              </div>
-                                            )}
+                                              </button>
+                                            ))}
                                           </div>
-                                        ) : (
-                                          <div className="text-center animate-in zoom-in duration-500">
-                                            <div className="space-y-6">
+                                        </div>
+
+                                        {/* Feedback */}
+                                        {quizStates[module.id]?.showFeedback && (
+                                          <div
+                                            className={`animate-in slide-in-from-bottom-2 duration-300 p-4 rounded-xl border-2 ${
+                                              quizStates[module.id]?.lastAnswerCorrect
+                                                ? "bg-gradient-to-r from-green-100 to-green-50 border-green-300 text-green-800"
+                                                : "bg-gradient-to-r from-red-100 to-red-50 border-red-300 text-red-800"
+                                            }`}
+                                          >
+                                            <div className="flex items-center gap-3">
                                               <div
-                                                className={`w-20 h-20 rounded-full flex items-center justify-center mx-auto shadow-xl animate-bounce ${
-                                                  (quizStates[module.id]?.score || 0) >= module.quiz.passingScore
-                                                    ? "bg-gradient-to-br from-green-400 to-green-600"
-                                                    : "bg-gradient-to-br from-red-400 to-red-600"
+                                                className={`w-8 h-8 rounded-full flex items-center justify-center ${
+                                                  quizStates[module.id]?.lastAnswerCorrect
+                                                    ? "bg-green-500"
+                                                    : "bg-red-500"
                                                 }`}
                                               >
-                                                <span className="text-3xl">
-                                                  {(quizStates[module.id]?.score || 0) >= module.quiz.passingScore
-                                                    ? "🎉"
-                                                    : "😔"}
+                                                <span className="text-white text-lg">
+                                                  {quizStates[module.id]?.lastAnswerCorrect ? "✅" : "❌"}
                                                 </span>
                                               </div>
-                                              <div>
-                                                <h5 className="text-2xl font-bold text-slate-800 mb-3">
-                                                  Quiz abgeschlossen!
-                                                </h5>
-                                                <div className="bg-white p-4 rounded-xl border border-slate-200 mb-6">
-                                                  <p className="text-lg text-slate-700 mb-2">
-                                                    <span className="font-bold text-2xl">
-                                                      {quizStates[module.id]?.score || 0}%
-                                                    </span>
-                                                  </p>
-                                                  <p className="text-sm text-slate-600">
-                                                    Benötigt: {module.quiz.passingScore}% • Status:{" "}
-                                                    {(quizStates[module.id]?.score || 0) >= module.quiz.passingScore ? (
-                                                      <span className="text-green-600 font-semibold">
-                                                        {" "}
-                                                        Bestanden ✅
-                                                      </span>
-                                                    ) : (
-                                                      <span className="text-red-600 font-semibold">
-                                                        {" "}
-                                                        Nicht bestanden ❌
-                                                      </span>
-                                                    )}
-                                                  </p>
-                                                </div>
-                                                <Button
-                                                  onClick={() => resetQuiz(module.id)}
-                                                  className="bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 text-white px-8 py-3 rounded-xl shadow-lg hover:shadow-xl transition-all duration-200"
-                                                >
-                                                  <span className="text-lg mr-2">🔄</span>
-                                                  Quiz wiederholen
-                                                </Button>
-                                              </div>
+                                              <span className="font-semibold">
+                                                {quizStates[module.id]?.lastAnswerCorrect
+                                                  ? "Richtig! Gut gemacht! 🎉"
+                                                  : "Leider falsch. Nicht aufgeben! 💪"}
+                                              </span>
                                             </div>
                                           </div>
                                         )}
