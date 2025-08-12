@@ -844,21 +844,14 @@ export default function CoursePage() {
                                     <div className="text-center animate-in zoom-in duration-500">
                                       <div className="space-y-4">
                                         <div
-                                          className={`bg-white p-6 rounded-xl border-4 relative overflow-hidden ${
+                                          className={`bg-white p-6 rounded-xl border-2 relative overflow-hidden ${
                                             (quizStates[module.id]?.score || 0) >= module.quiz.passingScore
-                                              ? "border-green-200"
+                                              ? "border-green-300 bg-gradient-to-br from-green-50 to-white"
                                               : "border-red-200"
                                           }`}
                                         >
-                                          {/* Animated border for success */}
                                           {(quizStates[module.id]?.score || 0) >= module.quiz.passingScore && (
-                                            <div className="absolute inset-0 rounded-xl">
-                                              <div
-                                                className="absolute inset-0 rounded-xl border-4 border-transparent bg-gradient-to-r from-green-400 via-green-500 to-green-400 bg-clip-border animate-spin"
-                                                style={{ animationDuration: "3s" }}
-                                              ></div>
-                                              <div className="absolute inset-1 bg-white rounded-lg"></div>
-                                            </div>
+                                            <div className="absolute inset-0 bg-gradient-to-r from-green-100/20 via-green-200/20 to-green-100/20 animate-pulse"></div>
                                           )}
 
                                           <div className="relative z-10 text-center">
