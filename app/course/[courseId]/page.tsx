@@ -843,51 +843,41 @@ export default function CoursePage() {
                                   ) : (
                                     <div className="text-center animate-in zoom-in duration-500">
                                       <div className="space-y-4">
-                                        <div className="bg-white p-6 rounded-xl border border-slate-200 relative overflow-hidden">
-                                          {/* Animated background gradient */}
-                                          <div
-                                            className={`absolute inset-0 opacity-10 ${
-                                              (quizStates[module.id]?.score || 0) >= module.quiz.passingScore
-                                                ? "bg-gradient-to-r from-green-400 to-green-600 animate-pulse"
-                                                : "bg-gradient-to-r from-red-400 to-red-600"
-                                            }`}
-                                          ></div>
+                                        <div
+                                          className={`bg-white p-6 rounded-xl border-4 relative overflow-hidden ${
+                                            (quizStates[module.id]?.score || 0) >= module.quiz.passingScore
+                                              ? "border-green-200"
+                                              : "border-red-200"
+                                          }`}
+                                        >
+                                          {/* Animated border for success */}
+                                          {(quizStates[module.id]?.score || 0) >= module.quiz.passingScore && (
+                                            <div className="absolute inset-0 rounded-xl">
+                                              <div
+                                                className="absolute inset-0 rounded-xl border-4 border-transparent bg-gradient-to-r from-green-400 via-green-500 to-green-400 bg-clip-border animate-spin"
+                                                style={{ animationDuration: "3s" }}
+                                              ></div>
+                                              <div className="absolute inset-1 bg-white rounded-lg"></div>
+                                            </div>
+                                          )}
 
-                                          <div className="relative z-10">
+                                          <div className="relative z-10 text-center">
                                             <h5 className="text-2xl sm:text-3xl font-bold text-slate-800 mb-4">
                                               Quiz abgeschlossen!
                                             </h5>
 
-                                            <div className="flex items-center justify-center gap-4 mb-4">
-                                              <div
-                                                className={`w-16 h-16 rounded-full flex items-center justify-center shadow-lg ${
-                                                  (quizStates[module.id]?.score || 0) >= module.quiz.passingScore
-                                                    ? "bg-gradient-to-br from-green-400 to-green-600"
-                                                    : "bg-gradient-to-br from-red-400 to-red-600"
-                                                }`}
-                                              >
-                                                <span className="text-2xl">
-                                                  {(quizStates[module.id]?.score || 0) >= module.quiz.passingScore
-                                                    ? "🎉"
-                                                    : "😔"}
-                                                </span>
-                                              </div>
-
-                                              <div className="text-center">
-                                                <p className="text-3xl font-bold text-slate-800 mb-1">
-                                                  {quizStates[module.id]?.score || 0}%
-                                                </p>
-                                                <p className="text-sm text-slate-600">
-                                                  Benötigt: {module.quiz.passingScore}% • Status:{" "}
-                                                  {(quizStates[module.id]?.score || 0) >= module.quiz.passingScore ? (
-                                                    <span className="text-green-600 font-semibold">Bestanden ✅</span>
-                                                  ) : (
-                                                    <span className="text-red-600 font-semibold">
-                                                      Nicht bestanden ❌
-                                                    </span>
-                                                  )}
-                                                </p>
-                                              </div>
+                                            <div className="text-center mb-4">
+                                              <p className="text-4xl font-bold text-slate-800 mb-2">
+                                                {quizStates[module.id]?.score || 0}%
+                                              </p>
+                                              <p className="text-base text-slate-600">
+                                                Benötigt: {module.quiz.passingScore}% • Status:{" "}
+                                                {(quizStates[module.id]?.score || 0) >= module.quiz.passingScore ? (
+                                                  <span className="text-green-600 font-semibold">Bestanden ✅</span>
+                                                ) : (
+                                                  <span className="text-red-600 font-semibold">Nicht bestanden ❌</span>
+                                                )}
+                                              </p>
                                             </div>
                                           </div>
                                         </div>
