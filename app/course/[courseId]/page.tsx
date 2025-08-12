@@ -550,7 +550,7 @@ export default function CoursePage() {
                       </div>
 
                       <div className="flex flex-col gap-4">
-                        <div className="flex flex-wrap items-center gap-3">
+                        <div className="flex flex-row items-center gap-3 flex-wrap">
                           <Badge
                             variant="default"
                             className="px-4 py-2 rounded-full bg-slate-800 text-white text-sm font-medium"
@@ -558,6 +558,23 @@ export default function CoursePage() {
                             📹 Video
                           </Badge>
                           <span className="text-base font-medium text-slate-600">{module.duration}</span>
+                          <Badge
+                            className={`${
+                              isModuleCompleted
+                                ? "bg-green-100 text-green-700 border-green-200"
+                                : isVideoCompleted || isQuizCompleted
+                                  ? "bg-yellow-100 text-yellow-700 border-yellow-200"
+                                  : "bg-slate-100 text-slate-700 border-slate-200"
+                            } text-sm px-3 py-1`}
+                          >
+                            {isModuleCompleted
+                              ? "✅ Abgeschlossen"
+                              : isVideoCompleted && !isQuizCompleted
+                                ? "📝 Quiz offen"
+                                : !isVideoCompleted && isQuizCompleted
+                                  ? "📹 Video offen"
+                                  : "🚀 Bereit"}
+                          </Badge>
 
                           {isVideoCompleted && (
                             <Badge className="bg-blue-100 text-blue-700 border-blue-200 text-sm px-3 py-1">
@@ -651,10 +668,10 @@ export default function CoursePage() {
                                   ) : (
                                     <Button
                                       onClick={() => handleVideoEnded(module.id)}
-                                      className="w-full bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white px-8 py-4 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105 hover:-translate-y-1 text-base font-semibold"
+                                      className="w-full bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white px-6 py-4 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105 hover:-translate-y-1 text-sm sm:text-base font-semibold flex items-center justify-center gap-2"
                                     >
-                                      <CheckCircle className="h-5 w-5 mr-3" />
-                                      Video als abgeschlossen markieren
+                                      <CheckCircle className="h-5 w-5 flex-shrink-0" />
+                                      <span className="truncate">Video als abgeschlossen markieren</span>
                                     </Button>
                                   )}
                                 </div>
@@ -844,13 +861,13 @@ export default function CoursePage() {
                                     <div className="text-center animate-in zoom-in duration-500">
                                       <div className="space-y-6">
                                         <div
-                                          className={`w-24 h-24 rounded-full flex items-center justify-center mx-auto shadow-xl animate-bounce ${
+                                          className={`w-24 h-24 rounded-full flex items-center justify-center mx-auto shadow-xl animate-pulse ${
                                             (quizStates[module.id]?.score || 0) >= module.quiz.passingScore
                                               ? "bg-gradient-to-br from-green-400 to-green-600"
                                               : "bg-gradient-to-br from-red-400 to-red-600"
                                           }`}
                                         >
-                                          <span className="text-4xl">
+                                          <span className="text-4xl animate-pulse">
                                             {(quizStates[module.id]?.score || 0) >= module.quiz.passingScore
                                               ? "🎉"
                                               : "😔"}
