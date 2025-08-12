@@ -165,7 +165,6 @@ export default function CoursePage() {
     checkAuth()
   }, [router])
 
-
   // ID-basierte Funktionen
   const toggleModule = (moduleId: number) => {
     console.log("🔄 Toggling module:", moduleId)
@@ -503,8 +502,8 @@ export default function CoursePage() {
                     isModuleCompleted ? "ring-2 ring-green-200" : ""
                   }`}
                 >
-                  <CardContent className="p-8">
-                    <div className="flex items-start gap-6">
+                  <CardContent className="p-4 sm:p-8">
+                    <div className="flex items-start gap-4 sm:gap-6">
                       <div className="flex flex-col items-center gap-2">
                         <div
                           className={`w-12 h-12 rounded-2xl flex items-center justify-center shadow-lg ${
@@ -547,21 +546,24 @@ export default function CoursePage() {
                           </Badge>
                         </div>
 
-                        <div className="flex items-center justify-between mt-6">
-                          <div className="flex items-center gap-4">
-                            <Badge variant="default" className="px-3 py-1 rounded-full bg-slate-800 text-white">
-                              {isYouTubeUrl(module.videoUrl) ? "📺 YouTube" : "📹 Video"}
+                        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mt-6 gap-4">
+                          <div className="flex flex-wrap items-center gap-2 sm:gap-4">
+                            <Badge
+                              variant="default"
+                              className="px-3 py-1 rounded-full bg-slate-800 text-white text-xs sm:text-sm"
+                            >
+                              📹 Video
                             </Badge>
                             <span className="text-sm text-slate-600 font-medium">{module.duration}</span>
 
                             {isVideoCompleted && (
-                              <Badge className="bg-blue-100 text-blue-700 border-blue-200">
+                              <Badge className="bg-blue-100 text-blue-700 border-blue-200 text-xs sm:text-sm">
                                 ✅ Video abgeschlossen
                               </Badge>
                             )}
 
                             {isQuizCompleted && (
-                              <Badge className="bg-green-100 text-green-700 border-green-200">
+                              <Badge className="bg-green-100 text-green-700 border-green-200 text-xs sm:text-sm">
                                 🎯 Quiz bestanden ({quizStates[module.id]?.score}%)
                               </Badge>
                             )}
@@ -569,7 +571,7 @@ export default function CoursePage() {
 
                           <Button
                             onClick={() => toggleModule(module.id)}
-                            className={`px-8 py-3 rounded-xl shadow-lg transition-all duration-300 flex items-center gap-3 transform hover:scale-105 hover:-translate-y-1 ${
+                            className={`w-full sm:w-auto px-6 sm:px-8 py-3 rounded-xl shadow-lg transition-all duration-300 flex items-center justify-center gap-3 transform hover:scale-105 hover:-translate-y-1 ${
                               isModuleCompleted
                                 ? "bg-gradient-to-r from-green-100 to-green-200 text-green-800 hover:from-green-200 hover:to-green-300 border-2 border-green-300"
                                 : `bg-gradient-to-r ${course.gradient} hover:shadow-2xl text-white`
